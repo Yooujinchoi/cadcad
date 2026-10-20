@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f10">
+<title>울의 카드게임</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+
+  <section id="s-name" class="screen center">
+    <h1 class="logo">인물<br>카드전</h1>
+    <form id="name-form" autocomplete="off">
+      <label for="name">당신의 이름을 설정하세요</label>
+      <input id="name" maxlength="8" placeholder="닉네임 (최대 8글자)" enterkeyhint="done">
+      <div class="count"><span id="cnt">0</span>/8</div>
+      <button class="btn" type="submit">확인</button>
+    </form>
+  </section>
+
+  <section id="s-game" class="screen" hidden>
+    <header class="top"><b id="who"></b><span>튜토리얼</span></header>
+
+    <div class="enemy" id="enemy">
+      <div class="bot" id="bot"><div class="face"><i></i><i></i></div><u></u></div>
+      <div class="nm">대충 훈련봇</div>
+      <div class="hp"><div id="hpf"></div><span id="hpt"></span></div>
+    </div>
+
+    <p class="hint" id="hint"></p>
+
+    <div class="hand">
+      <button class="card" id="card" type="button" aria-label="평범한 김울 카드 사용">
+        <img src="kimul.jpg" alt="평범한 김울">
+        <span class="skill"><span id="sk"></span><em id="dm"></em></span>
+        <span class="cd" id="cd"></span>
+      </button>
+    </div>
+  </section>
+
+  <div class="over" id="over" hidden>
+    <div class="panel">
+      <h2>튜토리얼 완료</h2>
+      <p id="done-msg"></p>
+      <button class="btn" id="again" type="button">다시 하기</button>
+      <button class="btn ghost" id="rename" type="button">이름 바꾸기</button>
+    </div>
+  </div>
+
+</main>
+<script src="game.js"></script>
+</body>
+</html>
