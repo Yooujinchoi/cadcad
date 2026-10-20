@@ -3,7 +3,8 @@ const LS = {
   get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-const ADMIN = { id: 'admin', pw: 'admin1234' }; // 관리자: 모든 카드 + BP/뽑기권 무제한
+// 관리자(모든 카드 + BP/뽑기권 무제한). 비밀번호 원문은 코드에 없고 해시만 저장. 아이디는 소문자로 비교(Yoojin_choi 입력해도 됨)
+const ADMIN = { id: 'yoojin_choi', pwHash: 'a7de886c461085419c23bfc25d6f9949947b6006f24108c11e6dca584844644a' };
 const PULL_BP = 1000, NAME_MAX = 8;
 const DIFFS = [
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 8, sdmg: 5, windup: 1800, shield: 0 } },
@@ -28,8 +29,9 @@ async function hash(id, pw) {
   return btoa(unescape(encodeURIComponent(`${id}:${pw}`)));
 }
 async function ensureAdmin() {
-  const all = users(), a = all[ADMIN.id] || { id: ADMIN.id, name: '관리자', bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
-  Object.assign(a, { pw: await hash(ADMIN.id, ADMIN.pw), admin: true, tut: true });
+  const all = users(); delete all.admin; // 예전 admin 계정 제거
+  const a = all[ADMIN.id] || { id: ADMIN.id, name: '관리자', bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
+  Object.assign(a, { pw: ADMIN.pwHash, admin: true, tut: true });
   for (const t in CARDS) while (a.inv.filter(c => c.type === t).length < 5) a.inv.push({ id: a.seq++, type: t });
   all[a.id] = a; LS.set('kc_users', all);
 }
@@ -46,7 +48,7 @@ $('t-up').onclick = () => mode(true);
 $('auth-form').addEventListener('submit', async e => {
   e.preventDefault();
   const id = $('uid').value.trim().toLowerCase(), pw = $('upw').value, all = users(), err = m => { $('aerr').textContent = m; };
-  if (!/^[a-z0-9]{4,12}$/.test(id)) return err('아이디는 영문·숫자 4~12자로 입력하세요.');
+  if (!/^[a-z0-9_]{4,12}$/.test(id)) return err('아이디는 영문·숫자·_ 4~12자로 입력하세요.');
   if (pw.length < 4) return err('비밀번호는 4자 이상 입력하세요.');
   const h = await hash(id, pw);
   if (up) {
