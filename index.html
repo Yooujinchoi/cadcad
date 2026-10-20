@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 <main id="app">
@@ -68,8 +68,12 @@
   </section>
 
   <section id="s-coll" class="screen" hidden>
-    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>컬렉션</h2><span id="coll-cnt"></span></header>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>컬렉션</h2><span id="coll-cnt"></span><button class="chip" id="coll-sel" type="button">선택 폐기</button></header>
     <div class="grid" id="coll-grid"></div>
+    <div class="selbar" id="coll-bar" hidden>
+      <button class="btn ghost" id="sel-all" type="button">전체 선택</button>
+      <button class="btn" id="sel-del" type="button">폐기 (0)</button>
+    </div>
   </section>
 
   <section id="s-deck" class="screen" hidden>
@@ -109,7 +113,7 @@
       <div class="bot" id="bot"><div class="face"><i></i><i></i></div><u></u><div id="bav" hidden></div></div>
       <div class="nm" id="bname"></div>
       <div class="hp"><div id="hpf"></div><span id="hpt"></span></div>
-      <div class="sp" id="bsp"><div id="bspf"></div></div>
+      <div class="sp" id="bsp"><div id="bspf"></div><span id="bspt"></span></div>
     </div>
     <p class="hint" id="hint"></p>
     <div class="hand">
@@ -145,8 +149,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="game.js?v=10"></script>
-<script src="app.js?v=10"></script>
-<script src="multi.js?v=10"></script>
+<script src="game.js?v=11"></script>
+<script src="app.js?v=11"></script>
+<script src="multi.js?v=11"></script>
 </body>
 </html>

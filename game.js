@@ -14,13 +14,13 @@ const RARITY = {
   sr: { name: '슈퍼레어', color: '#c07bff', rank: 3 },
   minjun: { name: '민준급', color: '#ff9f3d', rank: 4 },
 };
-// 스킬포인트: 모든 카드 평타 1회당 +5, 스킬은 100 필요
+// 스킬포인트: 평타 1회당 쌓이는 양(gain)은 카드마다 다름, 스킬은 cost 필요
 const CARDS = {
   kimul: { name: '평범한 김울', img: 'kimul.jpg', rarity: 'kimul', hp: 100,
     basic: { name: '평타', dmg: 5, cd: 500, gain: 5 },
     skill: { name: '째려보기', dmg: 40, cd: 800, cost: 100, hold: 450 } },
   yongsa: { name: '용사 김울', img: 'yongsa.jpg', rarity: 'sr', hp: 700,
-    basic: { name: '평타', dmg: 13, cd: 500, gain: 5 },
+    basic: { name: '평타', dmg: 13, cd: 500, gain: 8 },
     skill: { name: '울칼리버', dmg: 110, cd: 800, cost: 100, hold: 450 } },
 };
 const rar = t => RARITY[CARDS[t].rarity];
@@ -75,8 +75,9 @@ function renderBot() {
   const b = S.bot;
   $('hpf').style.width = pct(b.hp, b.max);
   $('hpt').textContent = `${b.hp} / ${b.max}`;
-  $('bspf').style.width = b.en + '%';
-  $('bsp').classList.toggle('full', b.en >= 100);
+  $('bspf').style.width = pct(b.en, b.cost);
+  $('bspt').textContent = `스킬 ${b.en} / ${b.cost}`;
+  $('bsp').classList.toggle('full', b.en >= b.cost);
 }
 function renderPlayer() {
   const c = S.cards[S.cur], d = CARDS[c.type];
@@ -115,7 +116,7 @@ function battle(cfg) {
   S.tok++;
   const types = cfg.deck || ['kimul'];
   Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0, myBlk: 0,
-    bot: { hp: cfg.bot, max: cfg.bot, en: 0, sh: 3 },
+    bot: { hp: cfg.bot, max: cfg.bot, en: 0, sh: 3, cost: cfg.p.cost || 100 },
     cards: types.map(t => ({ type: t, hp: CARDS[t].hp, en: 0 })) });
   $('who').textContent = cfg.who;
   $('stg').textContent = cfg.tag;
@@ -182,8 +183,8 @@ function foeSkill(d, windup, done) {
 function foeAttack(e) { if (S.ready) e.k === 'skill' ? foeSkill(e.d, S.p.windup) : foeBasic(e.d); }
 function botAct() {
   const b = S.bot;
-  if (b.en >= 100) return foeSkill(S.p.sdmg, S.p.windup, () => { S.bot.en = 0; renderBot(); later(botAct, S.p.gap); });
-  b.en = Math.min(100, b.en + S.p.gain); renderBot();
+  if (b.en >= b.cost) return foeSkill(S.p.sdmg, S.p.windup, () => { S.bot.en = 0; renderBot(); later(botAct, S.p.gap); });
+  b.en = Math.min(b.cost, b.en + S.p.gain); renderBot();
   foeBasic(S.p.dmg);
   later(botAct, S.p.gap);
 }

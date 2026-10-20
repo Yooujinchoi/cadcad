@@ -219,3 +219,9 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .rc{position:relative}
 .mini img{border-color:var(--rc,var(--gold))}
 .rate{margin:6px 0 0;text-align:center;font-size:12px}
+
+/* v11: 선택 폐기, 봇 스킬포인트 표시 */
+.chip{padding:6px 12px;font:700 13px Pretendard,sans-serif;color:var(--ink);background:none;border:1px solid #3a4c4c;border-radius:16px}
+.selbar{display:flex;gap:10px;padding-top:8px}
+.selbar .btn{flex:1}
+#bsp{height:16px}

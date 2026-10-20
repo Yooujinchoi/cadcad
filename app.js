@@ -15,10 +15,10 @@ const uid = () => auth.currentUser.uid;
 const PULL_BP = 1000, NAME_MAX = 8;
 const DIFFS = [
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 8, sdmg: 5, windup: 1800, shield: 0 } },
-  { name: '쉬움', info: '입문용', bot: 200, bp: 200, p: { dmg: 5, gap: 1200, gain: 18, sdmg: 40, windup: 1400, shield: 0 } },
-  { name: '보통', info: '봇도 방어막 사용', bot: 500, bp: 400, p: { dmg: 7, gap: 900, gain: 25, sdmg: 55, windup: 1100, shield: .35 } },
-  { name: '어려움', info: '빠르고 방어도 잘함', bot: 1000, bp: 500, p: { dmg: 12, gap: 800, gain: 25, sdmg: 80, windup: 900, shield: .6 } },
-  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 2000, p: { dmg: 25, gap: 650, gain: 30, sdmg: 100, windup: 750, shield: .85 } },
+  { name: '쉬움', info: '입문용', bot: 200, bp: 200, p: { dmg: 5, gap: 1200, gain: 18, sdmg: 40, cost: 100, windup: 1400, shield: 0 } },
+  { name: '보통', info: '봇도 방어막 사용', bot: 500, bp: 400, p: { dmg: 7, gap: 900, gain: 25, sdmg: 55, cost: 80, windup: 1100, shield: .35 } },
+  { name: '어려움', info: '빠르고 방어도 잘함', bot: 1000, bp: 500, p: { dmg: 12, gap: 800, gain: 25, sdmg: 80, cost: 65, windup: 900, shield: .6 } },
+  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 2000, p: { dmg: 25, gap: 650, gain: 30, sdmg: 100, cost: 50, windup: 750, shield: .85 } },
 ];
 const AUTH_ERR = {
   'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
@@ -29,7 +29,7 @@ const AUTH_ERR = {
   'auth/network-request-failed': '네트워크 연결을 확인하세요.',
   'auth/too-many-requests': '시도가 너무 많아요. 잠시 후 다시 해보세요.',
 };
-let U = null, up = false, pulling = false;
+let U = null, up = false, pulling = false, collSel = null; // collSel: 폐기 선택 모드(Set) 또는 null
 
 const fmt = n => n.toLocaleString('en-US');
 const wal = () => U.admin ? 'BP ∞ · 뽑기권 ∞' : `BP ${fmt(U.bp)} · 뽑기권 ${U.tickets}`;
@@ -139,7 +139,7 @@ function menu() {
 $('m-ai').onclick = diffs;
 $('m-deck').onclick = deck;
 $('m-shop').onclick = shop;
-$('m-coll').onclick = coll;
+$('m-coll').onclick = () => { collSel = null; coll(); };
 $('m-gacha').onclick = gacha;
 $('m-out').onclick = () => { auth.signOut(); U = null; show('s-auth'); };
 
@@ -211,7 +211,7 @@ function myDeck() {
   return types;
 }
 function diffs() {
-  $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.info} · 체력 ${fmt(d.bot)} · 평타 ${d.p.dmg} · 스킬 ${d.p.sdmg} · 승리 +${fmt(d.bp)} BP</small></button>`).join('');
+  $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.info} · 체력 ${fmt(d.bot)} · 평타 ${d.p.dmg} · 스킬 ${d.p.sdmg} · 스킬포인트 ${d.p.cost || 100} · 승리 +${fmt(d.bp)} BP</small></button>`).join('');
   show('s-diff');
 }
 $('diff-list').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) startAI(DIFFS[+b.dataset.i]); });
@@ -231,11 +231,34 @@ const cardEl = (c, extra = '', n = '') => { const d = CARDS[c.type], r = rar(c.t
 const EMPTY = '<p class="empty">아직 카드가 없어요.<br>뽑기에서 카드를 뽑아보세요!</p>';
 
 function coll() {
-  $('coll-cnt').textContent = `${U.inv.length}장`;
-  $('coll-grid').innerHTML = U.inv.slice().sort(byRank).map(c => cardEl(c)).join('') || EMPTY;
+  const sel = collSel, n = U.inv.length;
+  $('coll-cnt').textContent = sel ? `${sel.size}/${n}장 선택` : `${n}장`;
+  $('coll-sel').textContent = sel ? '취소' : '선택 폐기';
+  $('coll-bar').hidden = !sel;
+  if (sel) { $('sel-del').textContent = `폐기 (${sel.size})`; $('sel-all').textContent = sel.size === n ? '선택 해제' : '전체 선택'; }
+  $('coll-grid').innerHTML = U.inv.slice().sort(byRank).map(c => sel && sel.has(c.id) ? cardEl(c, ' sel', '<i class="no">✓</i>') : cardEl(c)).join('') || EMPTY;
   show('s-coll');
 }
-$('coll-grid').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) detail(U.inv.find(c => c.id == b.dataset.id)); });
+const redraw = () => { const g = $('coll-grid'), y = g.scrollTop; coll(); g.scrollTop = y; };
+$('coll-grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if (!b) return;
+  const id = +b.dataset.id;
+  if (!collSel) return detail(U.inv.find(c => c.id === id));
+  collSel.has(id) ? collSel.delete(id) : collSel.add(id);
+  redraw();
+});
+$('coll-sel').onclick = () => { collSel = collSel ? null : new Set(); redraw(); };
+$('sel-all').onclick = () => { collSel = collSel.size === U.inv.length ? new Set() : new Set(U.inv.map(c => c.id)); redraw(); };
+$('sel-del').onclick = () => {
+  const ids = collSel, picked = U.inv.filter(c => ids.has(c.id)), n = picked.length;
+  if (!n) return toast('폐기할 카드를 선택하세요.');
+  const high = picked.filter(c => rar(c.type).rank >= 3).length, inDeck = picked.filter(c => U.deck.includes(c.id)).length;
+  const warn = [high && `슈퍼레어 이상 ${high}장`, inDeck && `출격 카드 ${inDeck}장`].filter(Boolean).join(', ');
+  panel('카드 폐기', `선택한 ${n}장을 정말 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)${warn ? `\n⚠ ${warn} 포함` : ''}`, '취소', null, '폐기하기', () => {
+    U.inv = U.inv.filter(c => !ids.has(c.id)); U.deck = U.deck.filter(id => !ids.has(id));
+    collSel = null; persist(); coll(); toast(`${n}장을 폐기했어요.`);
+  });
+};
 
 function detail(c) {
   const d = CARDS[c.type];
