@@ -33,6 +33,7 @@ const pct = (a, b) => (a / b * 100) + '%';
 const later = (fn, ms) => { const t = S.tok; setTimeout(() => { if (t === S.tok && S.ready) fn(); }, ms); };
 
 function panel(title, text, ok, onOk, sub, onSub, img) {
+  $('p-in').hidden = true;
   $('p-title').textContent = title;
   $('p-text').textContent = text;
   $('p-img').hidden = !img; if (img) $('p-img').src = img;
@@ -72,6 +73,7 @@ function renderPlayer() {
   $('psp').classList.toggle('full', c.en >= d.skill.cost);
   $('bench').innerHTML = S.cards.map((x, i) => i === S.cur ? '' :
     `<div class="mini${x.hp <= 0 ? ' dead' : ''}" data-i="${i}" role="button" aria-label="카드 교체"><img src="${CARDS[x.type].img}" alt=""><span class="hp"><div style="width:${pct(x.hp, CARDS[x.type].hp)}"></div></span></div>`).join('');
+  if (S.cfg.sync) S.cfg.sync();
 }
 function renderShield() { $('shn').textContent = S.shields; $('shield').disabled = S.shields <= 0; }
 
@@ -94,7 +96,7 @@ function fly(from, to, cls, scale, dur, cb) {
 function battle(cfg) {
   S.tok++;
   const types = cfg.deck || ['kimul'];
-  Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0,
+  Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0, myBlk: 0,
     bot: { hp: cfg.bot, max: cfg.bot, en: 0, sh: 3 },
     cards: types.map(t => ({ type: t, hp: CARDS[t].hp, en: 0 })) });
   $('who').textContent = cfg.who;
@@ -111,7 +113,10 @@ function battle(cfg) {
   card.className = cfg.deal ? 'card away' : 'card';
   renderBot(); renderPlayer(); renderShield();
   show('s-game');
-  cfg.intro ? panel(cfg.title, cfg.intro, '시작하기', () => begin(cfg)) : begin(cfg);
+  const t = S.tok;
+  cfg.intro ? panel(cfg.title, cfg.intro, '시작하기', () => begin(cfg))
+    : cfg.delay ? (say('3초 뒤에 시작해요! 준비하세요.'), setTimeout(() => { if (S.tok === t) begin(cfg); }, cfg.delay))
+    : begin(cfg);
 }
 function cd_reset() { $('cd').style.transition = 'none'; $('cd').style.transform = 'scaleY(0)'; }
 
@@ -131,30 +136,34 @@ function end(win) {
   setTimeout(() => { if (S.cfg === cfg) cfg[win ? 'win' : 'lose'](); }, win ? 1100 : 700);
 }
 
-$('quit').addEventListener('click', () => panel('전투 나가기', '전투를 포기하고 메뉴로 돌아갈까요?', '계속 싸우기', null, '나가기', () => { S.tok++; S.ready = false; menu(); }));
+$('quit').addEventListener('click', () => panel('전투 나가기', '전투를 포기하고 메뉴로 돌아갈까요?', '계속 싸우기', null, '나가기', () => { S.tok++; S.ready = false; (S.cfg.exit || menu)(); }));
 
-/* ── 훈련봇/AI ── */
-function botAct() {
-  const b = S.bot, el = $('bot');
-  if (b.en >= 100) return botSkill();
+/* ── 훈련봇/AI/상대 플레이어 공격 ── */
+function foeBasic(d) {
+  const el = $('bot');
   restart(el, 'lunge'); setTimeout(() => el.classList.remove('lunge'), 260);
-  b.en = Math.min(100, b.en + S.p.gain); renderBot();
-  fly(el, card, 'orb bad', 1.2, 320, () => hurtPlayer(S.p.dmg, false));
-  later(botAct, S.p.gap);
+  fly(el, card, 'orb bad', 1.2, 320, () => hurtPlayer(d, false));
 }
-function botSkill() {
+function foeSkill(d, windup, done) {
   const el = $('bot');
   el.classList.add('windup');
   say(S.cfg.shield ? '스킬을 준비 중! 방어막을 펼치세요!' : '훈련봇이 스킬을 준비 중이에요!');
   later(() => {
     el.classList.remove('windup');
-    S.bot.en = 0; renderBot();
     fly(el, card, 'orb bad eye', 2.2, 300, () => {
-      if (performance.now() < S.shieldUntil) { floatTxt($('active'), '방어!', 'dmg me blk'); say('방어 성공!'); navigator.vibrate?.(15); }
-      else { hurtPlayer(S.p.sdmg, true); say('스킬에 맞았어요!'); }
+      if (performance.now() < S.shieldUntil) { S.myBlk++; floatTxt($('active'), '방어!', 'dmg me blk'); say('방어 성공!'); navigator.vibrate?.(15); renderPlayer(); }
+      else { hurtPlayer(d, true); say('스킬에 맞았어요!'); }
     });
-    later(botAct, S.p.gap);
-  }, S.p.windup);
+    if (done) done();
+  }, windup);
+}
+function foeAttack(e) { if (S.ready) e.k === 'skill' ? foeSkill(e.d, S.p.windup) : foeBasic(e.d); }
+function botAct() {
+  const b = S.bot;
+  if (b.en >= 100) return foeSkill(S.p.sdmg, S.p.windup, () => { S.bot.en = 0; renderBot(); later(botAct, S.p.gap); });
+  b.en = Math.min(100, b.en + S.p.gain); renderBot();
+  foeBasic(S.p.dmg);
+  later(botAct, S.p.gap);
 }
 function hurtPlayer(d, big) {
   if (!S.ready) return;
@@ -165,7 +174,7 @@ function hurtPlayer(d, big) {
   floatTxt($('active'), '-' + d, big ? 'dmg crit me' : 'dmg me');
   if (c.hp <= 0) {
     const next = S.cards.findIndex(x => x.hp > 0);
-    if (next < 0) { renderPlayer(); return end(false); }
+    if (next < 0) { renderPlayer(); if (S.cfg.dead) S.cfg.dead(); return end(false); }
     S.cur = next; stopPress();
     say('카드가 쓰러졌어요! 다음 카드가 나옵니다.');
     card.className = 'card deal';
@@ -230,6 +239,16 @@ function attack(kind) {
   el.style.transition = `transform ${a.cd}ms linear`; el.style.transform = 'scaleY(0)';
   later(() => { S.busy = false; }, a.cd);
 
+  if (S.cfg.pvp) { // 멀티: 공격 신호만 보내고, 결과는 상대 화면에서 계산
+    S.cfg.pvp.send(kind, a.dmg);
+    if (!big && S.cfg.skill) {
+      const cost = CARDS[c.type].skill.cost, was = c.en;
+      c.en = Math.min(cost, c.en + a.gain);
+      if (c.en >= cost && was < cost) say('스킬 게이지 완료! 카드를 꾹 눌러 스킬을 사용하세요!');
+      renderPlayer();
+    }
+    return fly(card, $('bot'), big ? 'orb eye' : 'orb', big ? 2.6 : 1.5, big ? 460 : 380, () => {});
+  }
   const b = S.bot;
   let blocked = false;
   if (big && b.sh > 0 && Math.random() < S.p.shield) {

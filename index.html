@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <main id="app">
@@ -18,7 +18,7 @@
     <form id="auth-form" class="form">
       <div class="tabs"><button type="button" id="t-in" class="on">로그인</button><button type="button" id="t-up">회원가입</button></div>
       <input class="fld" id="uid" placeholder="아이디 (영문·숫자·_ 4~12자)" maxlength="12" autocapitalize="off" autocomplete="username">
-      <input class="fld" id="upw" type="password" placeholder="비밀번호 (4자 이상)" autocomplete="current-password">
+      <input class="fld" id="upw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password">
       <input class="fld" id="upw2" type="password" placeholder="비밀번호 확인" autocomplete="new-password" hidden>
       <p class="err-msg" id="aerr"></p>
       <button class="btn" id="abtn" type="submit">로그인</button>
@@ -71,6 +71,21 @@
     </div>
   </section>
 
+  <section id="s-lobby" class="screen" hidden>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>멀티 게임</h2></header>
+    <button class="btn" id="l-make" type="button">방 만들기</button>
+    <p class="sub">참가할 방을 고르세요.</p>
+    <div class="rooms" id="l-list"></div>
+  </section>
+
+  <section id="s-room" class="screen" hidden>
+    <header class="bar"><h2 id="r-title"></h2></header>
+    <div class="slots" id="r-slots"></div>
+    <p class="sub" id="r-msg"></p>
+    <button class="btn" id="r-start" type="button">게임 시작</button>
+    <button class="btn ghost" id="r-leave" type="button">나가기</button>
+  </section>
+
   <section id="s-game" class="screen" hidden>
     <header class="top"><b id="who"></b><span id="stg"></span><button class="quit" id="quit" hidden>나가기</button></header>
     <div class="enemy" id="enemy">
@@ -100,6 +115,7 @@
       <h2 id="p-title"></h2>
       <img class="pimg" id="p-img" alt="" hidden>
       <p id="p-text"></p>
+      <input class="fld" id="p-in" maxlength="20" autocomplete="off" hidden>
       <button class="btn" id="p-ok" type="button"></button>
       <button class="btn ghost" id="p-sub" type="button" hidden></button>
     </div>
@@ -108,7 +124,12 @@
   <div class="res" id="res" hidden><div class="rgrid" id="rgrid"></div><button class="btn" id="r-ok" type="button">확인</button></div>
   <div id="toast" role="status"></div>
 </main>
-<script src="game.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="game.js?v=6"></script>
+<script src="app.js?v=6"></script>
+<script src="multi.js?v=6"></script>
 </body>
 </html>

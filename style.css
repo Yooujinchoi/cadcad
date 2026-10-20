@@ -176,3 +176,14 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 @keyframes pshake{25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
 @keyframes popen{40%{transform:scale(1.2);filter:brightness(2)}to{transform:scale(1.7);opacity:0;filter:brightness(5)}}
 @keyframes rc{from{transform:rotateY(90deg) scale(.6);opacity:0}}
+
+/* v6: 멀티 로비 / 대기실 */
+.rooms{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px 2px 12px}
+.rooms .mbtn{flex:none;display:flex;justify-content:space-between;align-items:center;text-align:left}
+.rooms .mbtn small{font-size:13px;color:var(--mute)}
+#s-lobby .btn{margin-bottom:6px}
+.slots{display:flex;flex-direction:column;gap:12px;margin:10px 0}
+.slot{padding:22px;font:700 19px Pretendard,sans-serif;text-align:center;color:var(--mute);border:3px dashed #3a4c4c;border-radius:12px}
+.slot.on{color:var(--ink);border:3px solid var(--gold);background:rgba(240,179,74,.08)}
+#s-room .btn{margin-top:10px}
+#p-in{margin:2px 0 6px}

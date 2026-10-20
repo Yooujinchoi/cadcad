@@ -1,10 +1,17 @@
-/* 계정 · 메뉴 · 컬렉션 · 출격 설정 · 뽑기 · AI 대전 (데이터는 이 브라우저의 localStorage에 저장) */
-const LS = {
-  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
-};
-// 관리자(모든 카드 + BP/뽑기권 무제한). 비밀번호 원문은 코드에 없고 해시만 저장. 아이디는 소문자로 비교(Yoojin_choi 입력해도 됨)
-const ADMIN = { id: 'yoojin_choi', pwHash: 'a7de886c461085419c23bfc25d6f9949947b6006f24108c11e6dca584844644a' };
+/* 계정(Firebase Auth) · 저장(Firestore) · 메뉴 · 컬렉션 · 출격 설정 · 뽑기 · AI 대전 */
+firebase.initializeApp({
+  apiKey: "AIzaSyAn9r8ir_HvhbOrul1vkY3TPUWNsnxfV9A",
+  authDomain: "kimul-card.firebaseapp.com",
+  databaseURL: "https://kimul-card-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kimul-card",
+  storageBucket: "kimul-card.firebasestorage.app",
+  messagingSenderId: "388739327635",
+  appId: "1:388739327635:web:bd8748e8a56310ddf50f66",
+});
+const auth = firebase.auth(), db = firebase.firestore();
+const ADMIN_EMAIL = 'yoojin_choi@kimul.app'; // 아이디 Yoojin_choi 로 가입한 계정이 관리자
+const mail = id => `${id}@kimul.app`;
+const uid = () => auth.currentUser.uid;
 const PULL_BP = 1000, NAME_MAX = 8;
 const DIFFS = [
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 8, sdmg: 5, windup: 1800, shield: 0 } },
@@ -13,17 +20,26 @@ const DIFFS = [
   { name: '어려움', info: '빠르고 방어도 잘함', bot: 400, bp: 400, p: { dmg: 4, gap: 800, gain: 25, sdmg: 30, windup: 900, shield: .6 } },
   { name: '헬모드', info: '각오하세요', bot: 700, bp: 1000, p: { dmg: 5, gap: 650, gain: 30, sdmg: 35, windup: 750, shield: .85 } },
 ];
+const AUTH_ERR = {
+  'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
+  'auth/invalid-credential': '아이디 또는 비밀번호가 올바르지 않아요.',
+  'auth/wrong-password': '아이디 또는 비밀번호가 올바르지 않아요.',
+  'auth/user-not-found': '아이디 또는 비밀번호가 올바르지 않아요.',
+  'auth/weak-password': '비밀번호는 6자 이상이어야 해요.',
+  'auth/network-request-failed': '네트워크 연결을 확인하세요.',
+  'auth/too-many-requests': '시도가 너무 많아요. 잠시 후 다시 해보세요.',
+};
 let U = null, up = false, pulling = false;
 
-const users = () => LS.get('kc_users') || {};
-const persist = () => { const all = users(); all[U.id] = U; LS.set('kc_users', all); };
 const fmt = n => n.toLocaleString('en-US');
 const wal = () => U.admin ? 'BP ∞ · 뽑기권 ∞' : `BP ${fmt(U.bp)} · 뽑기권 ${U.tickets}`;
 const toast = m => { const t = $('toast'); t.textContent = m; restart(t, 'on'); };
 const len = v => Array.from(v).length;
 const clip = v => Array.from(v).slice(0, NAME_MAX).join('');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const persist = () => { const { admin, ...d } = U; return db.collection('users').doc(uid()).set(d).catch(e => toast('저장 실패: ' + (e.code || e.message))); };
 
-// 어느 환경(https/로컬/http)에서든 같은 해시가 나오도록 직접 구현한 SHA-256
+// 방 비밀번호 해시용 SHA-256
 function sha256(str) {
   const P = []; for (let n = 2; P.length < 64; n++) if (P.every(p => n % p)) P.push(n);
   const fr = x => Math.floor((x - Math.floor(x)) * 4294967296);
@@ -50,15 +66,6 @@ function sha256(str) {
   }
   return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
 }
-const hash = async (id, pw) => sha256(`${id}:${pw}:kimul-card`);
-
-async function ensureAdmin() {
-  const all = users(); delete all.admin; // 예전 admin 계정 제거
-  const a = all[ADMIN.id] || { id: ADMIN.id, name: '관리자', bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
-  Object.assign(a, { pw: ADMIN.pwHash, admin: true, tut: true });
-  for (const t in CARDS) while (a.inv.filter(c => c.type === t).length < 5) a.inv.push({ id: a.seq++, type: t });
-  all[a.id] = a; LS.set('kc_users', all);
-}
 
 /* ── 로그인 / 회원가입 / 이름 ── */
 const mode = v => {
@@ -69,27 +76,37 @@ const mode = v => {
 $('t-in').onclick = () => mode(false);
 $('t-up').onclick = () => mode(true);
 
+async function loadUser() {
+  const u = auth.currentUser, snap = await db.collection('users').doc(u.uid).get();
+  U = snap.exists ? snap.data() : { id: u.email.split('@')[0], name: '', tut: false, bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
+  U.admin = u.email === ADMIN_EMAIL;
+  if (U.admin) {
+    U.tut = true;
+    for (const t in CARDS) while (U.inv.filter(c => c.type === t).length < 5) U.inv.push({ id: U.seq++, type: t });
+  }
+  if (!snap.exists || U.admin) await persist();
+}
+
 $('auth-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const id = $('uid').value.trim().toLowerCase(), pw = $('upw').value, all = users(), err = m => { $('aerr').textContent = m; };
+  const id = $('uid').value.trim().toLowerCase(), pw = $('upw').value, err = m => { $('aerr').textContent = m; }, btn = $('abtn');
   if (!/^[a-z0-9_]{4,12}$/.test(id)) return err('아이디는 영문·숫자·_ 4~12자로 입력하세요.');
-  if (pw.length < 4) return err('비밀번호는 4자 이상 입력하세요.');
-  const h = await hash(id, pw);
-  if (up) {
-    if (pw !== $('upw2').value) return err('비밀번호 확인이 일치하지 않아요.');
-    if (all[id]) return err('이미 사용 중인 아이디예요.');
-    U = { id, pw: h, name: '', tut: false, bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
-    persist();
-  } else {
-    if (!all[id] || all[id].pw !== h) return err('아이디 또는 비밀번호가 올바르지 않아요.');
-    U = all[id];
-  }
-  err(''); $('upw').value = $('upw2').value = '';
-  enter();
+  if (pw.length < 6) return err('비밀번호는 6자 이상 입력하세요.');
+  if (up && pw !== $('upw2').value) return err('비밀번호 확인이 일치하지 않아요.');
+  btn.disabled = true; err('');
+  try {
+    if (up) {
+      const c = await auth.createUserWithEmailAndPassword(mail(id), pw);
+      await db.collection('users').doc(c.user.uid).set({ id, name: '', tut: false, bp: 0, tickets: 0, inv: [], deck: [], seq: 1 });
+    } else await auth.signInWithEmailAndPassword(mail(id), pw);
+    await loadUser();
+    $('upw').value = $('upw2').value = '';
+    enter();
+  } catch (x) { err(AUTH_ERR[x.code] || '오류: ' + (x.code || x.message)); }
+  finally { btn.disabled = false; }
 });
 
 function enter() {
-  LS.set('kc_session', U.id);
   if (!U.name) { $('name').value = ''; $('cnt').textContent = 0; show('s-name'); }
   else if (!U.tut) tutorial(0);
   else menu();
@@ -104,7 +121,7 @@ $('name-form').addEventListener('submit', e => {
   const v = clip(input.value.trim());
   if (!v) { restart(input, 'err'); input.focus(); return; }
   U.name = v; persist(); input.blur();
-  tutorial(0);
+  U.tut ? menu() : tutorial(0);
 });
 
 function tutorialDone() {
@@ -120,14 +137,18 @@ function menu() {
   show('s-menu');
 }
 $('m-ai').onclick = diffs;
-$('m-multi').onclick = () => panel('멀티 게임', '방 만들기 · 방 비밀번호 · 방장 기능은 준비 중이에요.\n곧 만나요!', '확인');
 $('m-deck').onclick = deck;
 $('m-coll').onclick = coll;
 $('m-gacha').onclick = gacha;
-$('m-out').onclick = () => { U = null; LS.set('kc_session', null); show('s-auth'); };
+$('m-out').onclick = () => { auth.signOut(); U = null; show('s-auth'); };
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) ({ menu, coll, deck, gacha })[b.dataset.go](); });
 
 /* ── AI 대전 ── */
+function myDeck() {
+  let types = U.deck.map(id => U.inv.find(c => c.id === id)).filter(Boolean).map(c => c.type);
+  if (!types.length) types = U.inv.slice(0, 5).map(c => c.type);
+  return types;
+}
 function diffs() {
   $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.info} · 체력 ${d.bot} · 승리 +${d.bp} BP</small></button>`).join('');
   show('s-diff');
@@ -135,8 +156,7 @@ function diffs() {
 $('diff-list').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) startAI(DIFFS[+b.dataset.i]); });
 
 function startAI(d) {
-  let types = U.deck.map(id => U.inv.find(c => c.id === id)).filter(Boolean).map(c => c.type);
-  if (!types.length) types = U.inv.slice(0, 5).map(c => c.type);
+  const types = myDeck();
   if (!types.length) return panel('카드가 없어요', '뽑기에서 카드를 먼저 뽑아주세요.', '확인');
   battle({ who: U.name, tag: d.name, botName: `${d.name} 봇`, bot: d.bot, p: d.p, atk: true, skill: true, shield: true, quit: true, deck: types,
     hint: () => '전투 시작! 평타로 게이지를 모아 스킬을 쓰세요.',
@@ -208,9 +228,11 @@ $('g1').onclick = () => draw(1);
 $('g10').onclick = () => draw(10);
 $('r-ok').onclick = () => { $('res').hidden = true; gacha(); };
 
-/* ── 시작 ── */
-(async () => {
-  await ensureAdmin();
-  const sid = LS.get('kc_session'), saved = sid && users()[sid];
-  if (saved) { U = saved; enter(); } else show('s-auth');
-})();
+/* ── 시작: 로그인 유지 확인 ── */
+let booted = false;
+auth.onAuthStateChanged(async u => {
+  if (booted) return;
+  booted = true;
+  if (!u) return show('s-auth');
+  try { await loadUser(); enter(); } catch (e) { toast('불러오기 실패: ' + (e.code || e.message)); show('s-auth'); }
+});
