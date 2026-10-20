@@ -24,7 +24,7 @@
   </section>
 
   <section id="s-game" class="screen" hidden>
-    <header class="top"><b id="who"></b><span>튜토리얼</span></header>
+    <header class="top"><b id="who"></b><span id="stg"></span></header>
 
     <div class="enemy" id="enemy">
       <div class="bot" id="bot"><div class="face"><i></i><i></i></div><u></u></div>
@@ -37,18 +37,18 @@
     <div class="hand">
       <button class="card" id="card" type="button" aria-label="평범한 김울 카드 사용">
         <img src="kimul.jpg" alt="평범한 김울">
-        <span class="skill"><span id="sk"></span><em id="dm"></em></span>
-        <span class="cd" id="cd"></span>
+        <span class="skill"><span class="atk"><b id="n1"></b><em id="d1"></em></span><span class="atk sk" id="sk" hidden><b id="n2"></b><em id="d2"></em></span></span>
+        <span class="cd" id="cd"></span><span class="charge"></span>
       </button>
     </div>
   </section>
 
   <div class="over" id="over" hidden>
     <div class="panel">
-      <h2>튜토리얼 완료</h2>
-      <p id="done-msg"></p>
-      <button class="btn" id="again" type="button">다시 하기</button>
-      <button class="btn ghost" id="rename" type="button">이름 바꾸기</button>
+      <h2 id="p-title"></h2>
+      <p id="p-text"></p>
+      <button class="btn" id="p-ok" type="button"></button>
+      <button class="btn ghost" id="p-sub" type="button" hidden></button>
     </div>
   </div>
 

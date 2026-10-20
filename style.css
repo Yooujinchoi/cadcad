@@ -61,3 +61,20 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 @keyframes pulse{50%{transform:translateY(-6px);box-shadow:0 10px 34px rgba(240,179,74,.55)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
 @media (max-height:640px){.bot{transform:scale(.8)}.card{width:min(44vw,180px)}}
+
+/* v2: 평타/스킬, 꾹 누르기, 설명 패널 */
+.panel p{white-space:pre-line;text-align:center;line-height:1.7;word-break:keep-all}
+.card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.card img{pointer-events:none;-webkit-user-drag:none}
+.card.away{visibility:hidden}
+.atk{display:flex;align-items:center;gap:6px}
+.sk em{background:var(--red);color:#fff}
+.sk{animation:pop .4s}
+.charge{position:absolute;left:0;right:0;bottom:0;height:7px;background:var(--red);transform:scaleX(0);transform-origin:left;pointer-events:none}
+.card.charging{box-shadow:0 0 30px var(--red);transform:scale(.97)}
+.card.charging .charge{animation:charge .45s linear forwards}
+.orb.eye{background:radial-gradient(#fff,var(--red) 50%,transparent 72%);box-shadow:0 0 30px var(--red)}
+.dmg.crit{font-size:64px;margin-left:-44px;color:var(--gold)}
+.hint.nudge{animation:shake .3s;color:var(--gold)}
+@keyframes charge{to{transform:scaleX(1)}}
+@keyframes pop{from{transform:scale(1.6);opacity:0}}
