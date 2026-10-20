@@ -22,6 +22,9 @@ const CARDS = {
   yongsa: { name: '용사 김울', img: 'yongsa.jpg', rarity: 'sr', hp: 700,
     basic: { name: '평타', dmg: 13, cd: 500, gain: 8 },
     skill: { name: '울칼리버', dmg: 110, cd: 800, cost: 100, hold: 450 } },
+  angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1800,
+    basic: { name: '평타', dmg: 35, cd: 500, gain: 10 },
+    skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 } },
 };
 const rar = t => RARITY[CARDS[t].rarity];
 

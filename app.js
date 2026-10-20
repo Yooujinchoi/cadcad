@@ -287,7 +287,7 @@ $('deck-grid').addEventListener('click', e => {
 });
 
 /* ── 뽑기 ── */
-const POOL = [{ type: 'kimul', w: 95 }, { type: 'yongsa', w: 5 }]; // w = 확률(%) 합계 100
+const POOL = [{ type: 'kimul', w: 94 }, { type: 'yongsa', w: 5 }, { type: 'angry', w: 1 }]; // w = 확률(%) 합계 100
 const pickCard = () => { let x = Math.random() * 100; for (const p of POOL) { if ((x -= p.w) < 0) return p.type; } return POOL[0].type; };
 function gacha() {
   pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal();
