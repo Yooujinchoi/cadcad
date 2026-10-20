@@ -201,11 +201,14 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 #s-prof .btn{margin-top:10px}
 .slot .av{margin-right:8px}
 
-.enemy.pvp{display:grid;grid-template-columns:min(40vw,168px) 1fr;grid-template-rows:auto auto auto 1fr;column-gap:14px;row-gap:8px;justify-content:start;align-content:start;align-items:start;padding-top:6px}
-.enemy.pvp #bot{grid-row:1/5;width:100%;height:auto;aspect-ratio:3/4;background:#000 center/cover no-repeat;border:3px solid var(--gold);border-radius:12px}
+
+/* v9: 멀티 상대 카드 중앙 + 프로필은 카드 오른쪽 아래, 상점 */
+.enemy.pvp #bot{width:min(44vw,180px);height:auto;aspect-ratio:3/4;background:#000 center/cover no-repeat;border:3px solid var(--gold);border-radius:12px}
 .enemy.pvp #bot::before,.enemy.pvp #bot::after,.enemy.pvp .face,.enemy.pvp #bot u{display:none}
-.enemy.pvp .nm{grid-column:2;grid-row:1;font-size:17px;line-height:1.3;text-align:left}
-.enemy.pvp>.hp,.enemy.pvp>.sp{grid-column:2;width:100%}
-.enemy.pvp>.hp{grid-row:2}
-.enemy.pvp>.sp{grid-row:3}
-.enemy.pvp #bav{grid-column:2;grid-row:4;align-self:end;justify-self:start}
+.enemy.pvp .nm{font-size:17px}
+#bav{position:absolute;right:-22px;bottom:-22px;z-index:2}
+.shoplist{flex:1;display:flex;flex-direction:column;gap:12px;padding-top:6px}
+.item{flex:none;display:flex;justify-content:space-between;align-items:center;text-align:left}
+.item small{display:block;margin-top:2px;font:600 12px Pretendard,sans-serif;color:var(--mute)}
+.item b{font-size:18px;color:var(--gold)}
+@media (max-height:700px){.enemy.pvp #bot{width:min(32vw,128px)}}

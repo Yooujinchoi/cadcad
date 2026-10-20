@@ -15,10 +15,10 @@ const uid = () => auth.currentUser.uid;
 const PULL_BP = 1000, NAME_MAX = 8;
 const DIFFS = [
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 8, sdmg: 5, windup: 1800, shield: 0 } },
-  { name: '쉬움', info: '입문용', bot: 150, bp: 100, p: { dmg: 2, gap: 1200, gain: 18, sdmg: 15, windup: 1400, shield: 0 } },
-  { name: '보통', info: '봇도 방어막 사용', bot: 250, bp: 200, p: { dmg: 3, gap: 900, gain: 25, sdmg: 25, windup: 1100, shield: .35 } },
-  { name: '어려움', info: '빠르고 방어도 잘함', bot: 400, bp: 400, p: { dmg: 4, gap: 800, gain: 25, sdmg: 30, windup: 900, shield: .6 } },
-  { name: '헬모드', info: '각오하세요', bot: 700, bp: 1000, p: { dmg: 5, gap: 650, gain: 30, sdmg: 35, windup: 750, shield: .85 } },
+  { name: '쉬움', info: '입문용', bot: 150, bp: 200, p: { dmg: 2, gap: 1200, gain: 18, sdmg: 15, windup: 1400, shield: 0 } },
+  { name: '보통', info: '봇도 방어막 사용', bot: 250, bp: 300, p: { dmg: 3, gap: 900, gain: 25, sdmg: 25, windup: 1100, shield: .35 } },
+  { name: '어려움', info: '빠르고 방어도 잘함', bot: 400, bp: 500, p: { dmg: 4, gap: 800, gain: 25, sdmg: 30, windup: 900, shield: .6 } },
+  { name: '헬모드', info: '각오하세요', bot: 700, bp: 1100, p: { dmg: 5, gap: 650, gain: 30, sdmg: 35, windup: 750, shield: .85 } },
 ];
 const AUTH_ERR = {
   'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
@@ -138,12 +138,48 @@ function menu() {
 }
 $('m-ai').onclick = diffs;
 $('m-deck').onclick = deck;
+$('m-shop').onclick = shop;
 $('m-coll').onclick = coll;
 $('m-gacha').onclick = gacha;
 $('m-out').onclick = () => { auth.signOut(); U = null; show('s-auth'); };
 
 /* ── 프로필 (사진은 128px로 줄여 Firestore에 저장) ── */
-function profile() { $('pf-name').textContent = U.name; $('pf-av').innerHTML = avHtml(U.photo, 'xl'); show('s-prof'); }
+function profile() {
+  $('pf-name').textContent = U.name; $('pf-av').innerHTML = avHtml(U.photo, 'xl');
+  $('pf-rn').textContent = `이름 변경 (이름변경권 ${U.admin ? '∞' : (U.nt || 0)}장)`;
+  show('s-prof');
+}
+$('pf-rn').onclick = () => {
+  if (!U.admin && !(U.nt > 0)) return panel('이름변경권이 필요해요', '상점에서 이름변경권을 구매하면\n이름을 바꿀 수 있어요.', '상점으로', shop, '닫기');
+  ask('이름 변경', `새 이름을 입력하세요. (최대 ${NAME_MAX}글자)\n이름변경권 1장이 사용돼요.`, '새 이름', v => {
+    v = clip(v.trim());
+    if (!v) return toast('이름을 입력하세요.');
+    if (v === U.name) return toast('현재 이름과 같아요.');
+    if (!U.admin) U.nt -= 1;
+    U.name = v; persist(); profile(); toast('이름을 바꿨어요.');
+  }, NAME_MAX);
+};
+
+/* ── 상점 (BP로 구매) ── */
+const ITEMS = [
+  { icon: '🎟', name: '뽑기 티켓 1장', price: 300, give: u => { u.tickets += 1; } },
+  { icon: '🎟', name: '뽑기 티켓 10장', price: 2800, note: '장당 280 BP', give: u => { u.tickets += 10; } },
+  { icon: '✏️', name: '이름변경권 1장', price: 1000, give: u => { u.nt = (u.nt || 0) + 1; } },
+];
+function shop() {
+  $('sh-wal').textContent = U.admin ? 'BP ∞ · 뽑기권 ∞ · 변경권 ∞' : `BP ${fmt(U.bp)} · 뽑기권 ${U.tickets} · 변경권 ${U.nt || 0}`;
+  $('sh-list').innerHTML = ITEMS.map((it, i) => `<button class="mbtn item" data-i="${i}"><span>${it.icon} ${it.name}${it.note ? `<small>${it.note}</small>` : ''}</span><b>${fmt(it.price)} BP</b></button>`).join('');
+  show('s-shop');
+}
+$('sh-list').addEventListener('click', e => {
+  const b = e.target.closest('[data-i]'); if (!b) return;
+  const it = ITEMS[+b.dataset.i];
+  if (!U.admin && U.bp < it.price) return toast('BP가 부족해요.');
+  panel('구매 확인', `${it.name}\n${U.admin ? '관리자는 무료예요.' : fmt(it.price) + ' BP를 사용할까요?'}`, '구매', () => {
+    if (!U.admin) { if (U.bp < it.price) return toast('BP가 부족해요.'); U.bp -= it.price; }
+    it.give(U); persist(); shop(); toast(`구매 완료: ${it.name}`);
+  }, '취소');
+});
 $('m-me').onclick = profile;
 $('pf-up').onclick = () => $('pf-file').click();
 $('pf-del').onclick = () => { U.photo = ''; persist(); profile(); toast('기본 사진으로 바꿨어요.'); };

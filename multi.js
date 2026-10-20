@@ -2,9 +2,9 @@
 const rdb = () => firebase.database();
 let R = null; // 현재 방 { id, ref, host, started, over, offs }
 
-const ask = (title, text, ph, cb) => {
+const ask = (title, text, ph, cb, max = 20) => {
   panel(title, text, '확인', () => cb($('p-in').value), '취소');
-  const i = $('p-in'); i.value = ''; i.placeholder = ph; i.hidden = false;
+  const i = $('p-in'); i.value = ''; i.placeholder = ph; i.maxLength = max; i.hidden = false;
 };
 const noCards = () => panel('카드가 없어요', '뽑기에서 카드를 먼저 뽑아주세요.', '확인');
 
