@@ -13,33 +13,78 @@
 <body>
 <main id="app">
 
-  <section id="s-name" class="screen center">
+  <section id="s-auth" class="screen center">
     <h1 class="logo">인물<br>카드전</h1>
-    <form id="name-form" autocomplete="off">
+    <form id="auth-form" class="form">
+      <div class="tabs"><button type="button" id="t-in" class="on">로그인</button><button type="button" id="t-up">회원가입</button></div>
+      <input class="fld" id="uid" placeholder="아이디 (영문·숫자 4~12자)" maxlength="12" autocapitalize="off" autocomplete="username">
+      <input class="fld" id="upw" type="password" placeholder="비밀번호 (4자 이상)" autocomplete="current-password">
+      <input class="fld" id="upw2" type="password" placeholder="비밀번호 확인" autocomplete="new-password" hidden>
+      <p class="err-msg" id="aerr"></p>
+      <button class="btn" id="abtn" type="submit">로그인</button>
+    </form>
+  </section>
+
+  <section id="s-name" class="screen center" hidden>
+    <h1 class="logo">인물<br>카드전</h1>
+    <form id="name-form" class="form" autocomplete="off">
       <label for="name">당신의 이름을 설정하세요</label>
-      <input id="name" maxlength="8" placeholder="닉네임 (최대 8글자)" enterkeyhint="done">
+      <input class="fld" id="name" maxlength="8" placeholder="닉네임 (최대 8글자)" enterkeyhint="done">
       <div class="count"><span id="cnt">0</span>/8</div>
       <button class="btn" type="submit">확인</button>
     </form>
   </section>
 
-  <section id="s-game" class="screen" hidden>
-    <header class="top"><b id="who"></b><span id="stg"></span></header>
+  <section id="s-menu" class="screen" hidden>
+    <header class="top"><b id="m-name"></b><span id="m-wal"></span></header>
+    <div class="menu">
+      <button class="mbtn big" id="m-ai">AI랑 맞짱 까기</button>
+      <button class="mbtn big" id="m-multi">멀티 게임</button>
+      <button class="mbtn big" id="m-deck">출격 카드 설정</button>
+    </div>
+    <div class="row"><button class="mbtn" id="m-coll">컬렉션</button><button class="mbtn" id="m-gacha">뽑기하러가기</button></div>
+    <button class="link" id="m-out">로그아웃</button>
+  </section>
 
+  <section id="s-diff" class="screen" hidden>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>난이도 선택</h2></header>
+    <div class="menu" id="diff-list"></div>
+  </section>
+
+  <section id="s-coll" class="screen" hidden>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>컬렉션</h2><span id="coll-cnt"></span></header>
+    <div class="grid" id="coll-grid"></div>
+  </section>
+
+  <section id="s-deck" class="screen" hidden>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>출격 카드 설정</h2><span id="deck-cnt"></span></header>
+    <p class="sub">전투에 데려갈 카드를 최대 5장까지 고르세요.</p>
+    <div class="grid" id="deck-grid"></div>
+  </section>
+
+  <section id="s-gacha" class="screen" hidden>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>뽑기</h2><span id="g-wal"></span></header>
+    <div class="packwrap"><div class="pack" id="pack"><span>카드팩</span></div></div>
+    <div class="row">
+      <button class="btn" id="g1">1회 뽑기<small>뽑기권 1장 / 1,000 BP</small></button>
+      <button class="btn" id="g10">10회 뽑기<small>뽑기권 10장 / 10,000 BP</small></button>
+    </div>
+  </section>
+
+  <section id="s-game" class="screen" hidden>
+    <header class="top"><b id="who"></b><span id="stg"></span><button class="quit" id="quit" hidden>나가기</button></header>
     <div class="enemy" id="enemy">
       <div class="bot" id="bot"><div class="face"><i></i><i></i></div><u></u></div>
-      <div class="nm">대충 훈련봇</div>
+      <div class="nm" id="bname"></div>
       <div class="hp"><div id="hpf"></div><span id="hpt"></span></div>
       <div class="sp" id="bsp"><div id="bspf"></div></div>
     </div>
-
     <p class="hint" id="hint"></p>
-
     <div class="hand">
-      <div class="side"><div class="mini" id="mini"><img src="kimul.jpg" alt="대기 카드"><div class="hp"><div id="mhf"></div></div></div></div>
+      <div class="side"><div id="bench"></div></div>
       <div class="active" id="active">
-        <button class="card" id="card" type="button" aria-label="평범한 김울 카드">
-          <img src="kimul.jpg" alt="평범한 김울">
+        <button class="card" id="card" type="button" aria-label="카드 사용">
+          <img id="cimg" src="kimul.jpg" alt="">
           <span class="skill"><span class="atk"><b id="n1"></b><em id="d1"></em></span><span class="atk sk" id="sk" hidden><b id="n2"></b><em id="d2"></em></span></span>
           <span class="cd" id="cd"></span><span class="charge"></span>
         </button>
@@ -53,13 +98,17 @@
   <div class="over" id="over" hidden>
     <div class="panel">
       <h2 id="p-title"></h2>
+      <img class="pimg" id="p-img" alt="" hidden>
       <p id="p-text"></p>
       <button class="btn" id="p-ok" type="button"></button>
       <button class="btn ghost" id="p-sub" type="button" hidden></button>
     </div>
   </div>
 
+  <div class="res" id="res" hidden><div class="rgrid" id="rgrid"></div><button class="btn" id="r-ok" type="button">확인</button></div>
+  <div id="toast" role="status"></div>
 </main>
 <script src="game.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
