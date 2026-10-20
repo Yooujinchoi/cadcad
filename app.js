@@ -23,11 +23,35 @@ const toast = m => { const t = $('toast'); t.textContent = m; restart(t, 'on'); 
 const len = v => Array.from(v).length;
 const clip = v => Array.from(v).slice(0, NAME_MAX).join('');
 
-async function hash(id, pw) {
-  const data = new TextEncoder().encode(`${id}:${pw}:kimul-card`);
-  if (window.crypto?.subtle) return [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))].map(x => x.toString(16).padStart(2, '0')).join('');
-  return btoa(unescape(encodeURIComponent(`${id}:${pw}`)));
+// 어느 환경(https/로컬/http)에서든 같은 해시가 나오도록 직접 구현한 SHA-256
+function sha256(str) {
+  const P = []; for (let n = 2; P.length < 64; n++) if (P.every(p => n % p)) P.push(n);
+  const fr = x => Math.floor((x - Math.floor(x)) * 4294967296);
+  const K = P.map(p => fr(Math.cbrt(p)));
+  let H = P.slice(0, 8).map(p => fr(Math.sqrt(p)));
+  const bytes = new TextEncoder().encode(str), bl = bytes.length * 8, m = [...bytes, 0x80];
+  while (m.length % 64 !== 56) m.push(0);
+  m.push(0, 0, 0, 0, bl >>> 24 & 255, bl >>> 16 & 255, bl >>> 8 & 255, bl & 255);
+  const rr = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let i = 0; i < m.length; i += 64) {
+    const w = [];
+    for (let t = 0; t < 16; t++) w[t] = (m[i + 4 * t] << 24 | m[i + 4 * t + 1] << 16 | m[i + 4 * t + 2] << 8 | m[i + 4 * t + 3]) | 0;
+    for (let t = 16; t < 64; t++) {
+      const s0 = rr(w[t - 15], 7) ^ rr(w[t - 15], 18) ^ (w[t - 15] >>> 3), s1 = rr(w[t - 2], 17) ^ rr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let t = 0; t < 64; t++) {
+      const t1 = (h + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & f) ^ (~e & g)) + K[t] + w[t]) | 0;
+      const t2 = ((rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    H = H.map((x, j) => (x + [a, b, c, d, e, f, g, h][j]) | 0);
+  }
+  return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
 }
+const hash = async (id, pw) => sha256(`${id}:${pw}:kimul-card`);
+
 async function ensureAdmin() {
   const all = users(); delete all.admin; // 예전 admin 계정 제거
   const a = all[ADMIN.id] || { id: ADMIN.id, name: '관리자', bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
