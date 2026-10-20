@@ -15,10 +15,10 @@ const uid = () => auth.currentUser.uid;
 const PULL_BP = 1000, NAME_MAX = 8;
 const DIFFS = [
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 8, sdmg: 5, windup: 1800, shield: 0 } },
-  { name: '쉬움', info: '입문용', bot: 150, bp: 200, p: { dmg: 2, gap: 1200, gain: 18, sdmg: 15, windup: 1400, shield: 0 } },
-  { name: '보통', info: '봇도 방어막 사용', bot: 250, bp: 300, p: { dmg: 3, gap: 900, gain: 25, sdmg: 25, windup: 1100, shield: .35 } },
-  { name: '어려움', info: '빠르고 방어도 잘함', bot: 400, bp: 500, p: { dmg: 4, gap: 800, gain: 25, sdmg: 30, windup: 900, shield: .6 } },
-  { name: '헬모드', info: '각오하세요', bot: 700, bp: 1100, p: { dmg: 5, gap: 650, gain: 30, sdmg: 35, windup: 750, shield: .85 } },
+  { name: '쉬움', info: '입문용', bot: 200, bp: 200, p: { dmg: 5, gap: 1200, gain: 18, sdmg: 40, windup: 1400, shield: 0 } },
+  { name: '보통', info: '봇도 방어막 사용', bot: 500, bp: 400, p: { dmg: 7, gap: 900, gain: 25, sdmg: 55, windup: 1100, shield: .35 } },
+  { name: '어려움', info: '빠르고 방어도 잘함', bot: 1000, bp: 500, p: { dmg: 12, gap: 800, gain: 25, sdmg: 80, windup: 900, shield: .6 } },
+  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 2000, p: { dmg: 25, gap: 650, gain: 30, sdmg: 100, windup: 750, shield: .85 } },
 ];
 const AUTH_ERR = {
   'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
@@ -211,7 +211,7 @@ function myDeck() {
   return types;
 }
 function diffs() {
-  $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.info} · 체력 ${d.bot} · 승리 +${d.bp} BP</small></button>`).join('');
+  $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.info} · 체력 ${fmt(d.bot)} · 평타 ${d.p.dmg} · 스킬 ${d.p.sdmg} · 승리 +${fmt(d.bp)} BP</small></button>`).join('');
   show('s-diff');
 }
 $('diff-list').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) startAI(DIFFS[+b.dataset.i]); });
@@ -226,19 +226,20 @@ function startAI(d) {
 }
 
 /* ── 컬렉션 / 출격 카드 ── */
-const cardEl = (c, extra = '', n = '') => `<button class="cc${extra}" data-id="${c.id}"><img src="${CARDS[c.type].img}" alt="${CARDS[c.type].name}">${n}</button>`;
+const byRank = (a, b) => rar(b.type).rank - rar(a.type).rank || a.id - b.id;
+const cardEl = (c, extra = '', n = '') => { const d = CARDS[c.type], r = rar(c.type); return `<button class="cc${extra}" data-id="${c.id}" style="--rc:${r.color}"><img src="${d.img}" alt="${d.name}"><i class="rt" style="background:${r.color}">${r.name}</i>${n}</button>`; };
 const EMPTY = '<p class="empty">아직 카드가 없어요.<br>뽑기에서 카드를 뽑아보세요!</p>';
 
 function coll() {
   $('coll-cnt').textContent = `${U.inv.length}장`;
-  $('coll-grid').innerHTML = U.inv.map(c => cardEl(c)).join('') || EMPTY;
+  $('coll-grid').innerHTML = U.inv.slice().sort(byRank).map(c => cardEl(c)).join('') || EMPTY;
   show('s-coll');
 }
 $('coll-grid').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) detail(U.inv.find(c => c.id == b.dataset.id)); });
 
 function detail(c) {
   const d = CARDS[c.type];
-  panel(d.name, `체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} (게이지 +${d.basic.gain})\n${d.skill.name}: 데미지 ${d.skill.dmg} (게이지 ${d.skill.cost} 필요)`,
+  panel(d.name, `등급 ${rar(c.type).name}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} (스킬포인트 +${d.basic.gain})\n${d.skill.name}: 데미지 ${d.skill.dmg} (스킬포인트 ${d.skill.cost} 필요)`,
     '닫기', null, '카드 폐기', () => discard(c), d.img);
 }
 function discard(c) {
@@ -250,7 +251,7 @@ function discard(c) {
 
 function deck() {
   $('deck-cnt').textContent = `${U.deck.length}/5`;
-  $('deck-grid').innerHTML = U.inv.map(c => { const i = U.deck.indexOf(c.id); return cardEl(c, i >= 0 ? ' sel' : '', i >= 0 ? `<i class="no">${i + 1}</i>` : ''); }).join('') || EMPTY;
+  $('deck-grid').innerHTML = U.inv.slice().sort(byRank).map(c => { const i = U.deck.indexOf(c.id); return cardEl(c, i >= 0 ? ' sel' : '', i >= 0 ? `<i class="no">${i + 1}</i>` : ''); }).join('') || EMPTY;
   show('s-deck');
 }
 $('deck-grid').addEventListener('click', e => {
@@ -263,8 +264,13 @@ $('deck-grid').addEventListener('click', e => {
 });
 
 /* ── 뽑기 ── */
-const POOL = ['kimul'];
-function gacha() { pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal(); show('s-gacha'); }
+const POOL = [{ type: 'kimul', w: 95 }, { type: 'yongsa', w: 5 }]; // w = 확률(%) 합계 100
+const pickCard = () => { let x = Math.random() * 100; for (const p of POOL) { if ((x -= p.w) < 0) return p.type; } return POOL[0].type; };
+function gacha() {
+  pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal();
+  $('g-rate').textContent = '확률 · ' + POOL.map(p => `${CARDS[p.type].name}(${rar(p.type).name}) ${p.w}%`).join(' / ');
+  show('s-gacha');
+}
 
 function draw(n) {
   if (pulling) return;
@@ -273,7 +279,7 @@ function draw(n) {
     if (U.bp < bp) return toast('뽑기권 또는 BP가 부족해요.');
     U.tickets -= useT; U.bp -= bp;
   }
-  const got = Array.from({ length: n }, () => ({ id: U.seq++, type: POOL[Math.floor(Math.random() * POOL.length)] }));
+  const got = Array.from({ length: n }, () => ({ id: U.seq++, type: pickCard() }));
   U.inv.push(...got); persist();
   pulling = true; $('g-wal').textContent = wal();
   $('pack').className = 'pack shake';
@@ -282,7 +288,7 @@ function draw(n) {
 function results(got) {
   const g = $('rgrid');
   g.className = got.length === 1 ? 'rgrid one' : 'rgrid';
-  g.innerHTML = got.map((c, i) => `<div class="rc" style="animation-delay:${i * .12}s"><img src="${CARDS[c.type].img}" alt="${CARDS[c.type].name}"></div>`).join('');
+  g.innerHTML = got.map((c, i) => { const r = rar(c.type); return `<div class="rc" style="--rc:${r.color};animation-delay:${i * .12}s"><img src="${CARDS[c.type].img}" alt="${CARDS[c.type].name}"><i class="rt" style="background:${r.color}">${r.name}</i></div>`; }).join('');
   $('res').hidden = false;
 }
 $('g1').onclick = () => draw(1);

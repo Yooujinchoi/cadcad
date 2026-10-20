@@ -6,11 +6,24 @@ const SHIELD_MS = 1200, SWAP_MS = 2500;
 const safePhoto = p => typeof p === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,60000}$/.test(p) ? p : '';
 const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="av ${cls}">${s ? `<img src="${s}" alt="">` : '🧑'}</span>`; };
 
-const CARDS = {
-  kimul: { name: '평범한 김울', img: 'kimul.jpg', hp: 100,
-    basic: { name: '평타', dmg: 5, cd: 500, gain: 10 },
-    skill: { name: '째려보기', dmg: 40, cd: 800, cost: 100, hold: 450 } },
+// 등급(낮음→높음): 김울급 < 버러지 < 레어 < 슈퍼레어 < 민준급
+const RARITY = {
+  kimul: { name: '김울급', color: '#9aa5a5', rank: 0 },
+  worm: { name: '버러지', color: '#7bc47f', rank: 1 },
+  rare: { name: '레어', color: '#5aa9ff', rank: 2 },
+  sr: { name: '슈퍼레어', color: '#c07bff', rank: 3 },
+  minjun: { name: '민준급', color: '#ff9f3d', rank: 4 },
 };
+// 스킬포인트: 모든 카드 평타 1회당 +5, 스킬은 100 필요
+const CARDS = {
+  kimul: { name: '평범한 김울', img: 'kimul.jpg', rarity: 'kimul', hp: 100,
+    basic: { name: '평타', dmg: 5, cd: 500, gain: 5 },
+    skill: { name: '째려보기', dmg: 40, cd: 800, cost: 100, hold: 450 } },
+  yongsa: { name: '용사 김울', img: 'yongsa.jpg', rarity: 'sr', hp: 700,
+    basic: { name: '평타', dmg: 13, cd: 500, gain: 5 },
+    skill: { name: '울칼리버', dmg: 110, cd: 800, cost: 100, hold: 450 } },
+};
+const rar = t => RARITY[CARDS[t].rarity];
 
 // 튜토리얼 훈련봇 (플레이어 최속 스킬 ≈5.4초 < 봇 스킬 시전 4.2초)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 25, sdmg: 25, windup: 1000, shield: 0 };
@@ -18,7 +31,7 @@ const TUTORIAL = [
   { bot: 30, deal: true,
     intro: '이 게임은 카드를 뽑아 상대방을 조지는 게임입니다.\n처음에는 기본카드인 평범한 김울 카드를 지급해드립니다.\n공격방법은 카드를 누르면 상대방에게 기본공격이 나갑니다.',
     hint: n => `${n}님, 카드를 눌러 기본공격을 해보세요!`, after: '좋아요! 계속 눌러서 처치하세요.' },
-  { bot: 100, skill: true,
+  { bot: 200, skill: true,
     intro: '이제 기본공격이 아닌 스킬을 사용해 봅시다.\n카드를 꾹 눌러 스킬을 사용해보세요.',
     hint: () => '평타를 쳐서 스킬 게이지를 채우세요!' },
   { bot: 300, skill: true, atk: true, shield: true, deck: ['kimul', 'kimul'], deal: true,
@@ -67,6 +80,7 @@ function renderBot() {
 }
 function renderPlayer() {
   const c = S.cards[S.cur], d = CARDS[c.type];
+  card.style.setProperty('--rc', rar(c.type).color);
   if (!$('cimg').src.endsWith(d.img)) $('cimg').src = d.img;
   $('n1').textContent = d.basic.name; $('d1').textContent = d.basic.dmg;
   $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.dmg;
@@ -76,7 +90,7 @@ function renderPlayer() {
   $('pspt').textContent = `스킬 ${c.en} / ${d.skill.cost}`;
   $('psp').classList.toggle('full', c.en >= d.skill.cost);
   $('bench').innerHTML = S.cards.map((x, i) => i === S.cur ? '' :
-    `<div class="mini${x.hp <= 0 ? ' dead' : ''}" data-i="${i}" role="button" aria-label="카드 교체"><img src="${CARDS[x.type].img}" alt=""><span class="hp"><div style="width:${pct(x.hp, CARDS[x.type].hp)}"></div></span></div>`).join('');
+    `<div class="mini${x.hp <= 0 ? ' dead' : ''}" data-i="${i}" style="--rc:${rar(x.type).color}" role="button" aria-label="카드 교체"><img src="${CARDS[x.type].img}" alt=""><span class="hp"><div style="width:${pct(x.hp, CARDS[x.type].hp)}"></div></span></div>`).join('');
   if (S.cfg.sync) S.cfg.sync();
 }
 function renderShield() { $('shn').textContent = S.shields; $('shield').disabled = S.shields <= 0; }

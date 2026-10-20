@@ -212,3 +212,10 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .item small{display:block;margin-top:2px;font:600 12px Pretendard,sans-serif;color:var(--mute)}
 .item b{font-size:18px;color:var(--gold)}
 @media (max-height:700px){.enemy.pvp #bot{width:min(32vw,128px)}}
+
+/* v10: 카드 등급 */
+.rt{position:absolute;right:4px;top:4px;padding:2px 6px;font:700 10px Pretendard,sans-serif;font-style:normal;color:#10151a;border-radius:8px}
+.cc,.rc,.card{border-color:var(--rc,var(--gold))}
+.rc{position:relative}
+.mini img{border-color:var(--rc,var(--gold))}
+.rate{margin:6px 0 0;text-align:center;font-size:12px}
