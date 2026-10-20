@@ -133,7 +133,7 @@ function tutorialDone() {
 
 /* ── 메뉴 ── */
 function menu() {
-  $('m-name').textContent = U.name; $('m-wal').textContent = wal();
+  $('m-name').textContent = U.name; $('m-wal').textContent = wal(); $('m-av').innerHTML = avHtml(U.photo);
   show('s-menu');
 }
 $('m-ai').onclick = diffs;
@@ -141,6 +141,31 @@ $('m-deck').onclick = deck;
 $('m-coll').onclick = coll;
 $('m-gacha').onclick = gacha;
 $('m-out').onclick = () => { auth.signOut(); U = null; show('s-auth'); };
+
+/* ── 프로필 (사진은 128px로 줄여 Firestore에 저장) ── */
+function profile() { $('pf-name').textContent = U.name; $('pf-av').innerHTML = avHtml(U.photo, 'xl'); show('s-prof'); }
+$('m-me').onclick = profile;
+$('pf-up').onclick = () => $('pf-file').click();
+$('pf-del').onclick = () => { U.photo = ''; persist(); profile(); toast('기본 사진으로 바꿨어요.'); };
+$('pf-file').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try { U.photo = await shrink(f); await persist(); profile(); toast('프로필 사진을 바꿨어요.'); }
+  catch { toast('사진을 불러오지 못했어요.'); }
+};
+function shrink(file) {
+  return new Promise((ok, no) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const s = Math.min(img.width, img.height), c = document.createElement('canvas');
+      c.width = c.height = 128;
+      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 128, 128);
+      URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', .8));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); no(); };
+    img.src = url;
+  });
+}
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) ({ menu, coll, deck, gacha })[b.dataset.go](); });
 
 /* ── AI 대전 ── */

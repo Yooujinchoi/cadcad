@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <main id="app">
@@ -36,7 +36,7 @@
   </section>
 
   <section id="s-menu" class="screen" hidden>
-    <header class="top"><b id="m-name"></b><span id="m-wal"></span></header>
+    <header class="top"><button class="me" id="m-me" type="button" aria-label="프로필"><span id="m-av"></span><b id="m-name"></b></button><span id="m-wal"></span></header>
     <div class="menu">
       <button class="mbtn big" id="m-ai">AI랑 맞짱 까기</button>
       <button class="mbtn big" id="m-multi">멀티 게임</button>
@@ -44,6 +44,14 @@
     </div>
     <div class="row"><button class="mbtn" id="m-coll">컬렉션</button><button class="mbtn" id="m-gacha">뽑기하러가기</button></div>
     <button class="link" id="m-out">로그아웃</button>
+  </section>
+
+  <section id="s-prof" class="screen" hidden>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>프로필</h2></header>
+    <div class="prof"><div id="pf-av"></div><b id="pf-name"></b></div>
+    <input type="file" id="pf-file" accept="image/*" hidden>
+    <button class="btn" id="pf-up" type="button">사진 올리기</button>
+    <button class="btn ghost" id="pf-del" type="button">기본 사진으로</button>
   </section>
 
   <section id="s-diff" class="screen" hidden>
@@ -93,6 +101,7 @@
       <div class="nm" id="bname"></div>
       <div class="hp"><div id="hpf"></div><span id="hpt"></span></div>
       <div class="sp" id="bsp"><div id="bspf"></div></div>
+      <div id="bav" hidden></div>
     </div>
     <p class="hint" id="hint"></p>
     <div class="hand">
@@ -128,8 +137,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="game.js?v=6"></script>
-<script src="app.js?v=7"></script>
-<script src="multi.js?v=6"></script>
+<script src="game.js?v=8"></script>
+<script src="app.js?v=8"></script>
+<script src="multi.js?v=8"></script>
 </body>
 </html>

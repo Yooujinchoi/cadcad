@@ -2,6 +2,10 @@
 const $ = id => document.getElementById(id);
 const SHIELD_MS = 1200, SWAP_MS = 2500;
 
+// 프로필 사진(128px JPEG data URL)만 허용 → 다른 사람이 보낸 값도 안전하게 표시
+const safePhoto = p => typeof p === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,60000}$/.test(p) ? p : '';
+const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="av ${cls}">${s ? `<img src="${s}" alt="">` : '🧑'}</span>`; };
+
 const CARDS = {
   kimul: { name: '평범한 김울', img: 'kimul.jpg', hp: 100,
     basic: { name: '평타', dmg: 5, cd: 500, gain: 10 },
@@ -102,6 +106,10 @@ function battle(cfg) {
   $('who').textContent = cfg.who;
   $('stg').textContent = cfg.tag;
   $('bname').textContent = cfg.botName;
+  $('enemy').classList.toggle('pvp', !!cfg.foe); // 멀티: 상대 카드 + 상대 프로필 배치
+  $('bot').style.backgroundImage = cfg.foe ? `url(${(CARDS[cfg.foe.deck[0]] || CARDS.kimul).img})` : '';
+  $('bav').hidden = !cfg.foe;
+  if (cfg.foe) $('bav').innerHTML = avHtml(cfg.foe.photo, 'lg');
   $('quit').hidden = !cfg.quit;
   $('sk').hidden = $('psp').hidden = !cfg.skill;
   $('bsp').hidden = !cfg.atk;

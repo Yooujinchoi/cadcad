@@ -15,7 +15,7 @@ function lobby() {
   const cb = ref.on('value', snap => {
     if ($('s-lobby').hidden) return ref.off('value', cb);
     const rooms = Object.entries(snap.val() || {}).filter(([, r]) => r.state === 'wait' && r.hostName);
-    $('l-list').innerHTML = rooms.map(([id, r]) => `<button class="mbtn" data-id="${id}">${r.pw ? '🔒 ' : ''}${esc(r.hostName)}님의 방 <small>${Object.keys(r.players || {}).length}/2</small></button>`).join('')
+    $('l-list').innerHTML = rooms.map(([id, r]) => `<button class="mbtn" data-id="${id}"><span>${avHtml(((r.players || {})[r.host] || {}).photo, 'sm')} ${r.pw ? '🔒 ' : ''}${esc(r.hostName)}님의 방</span> <small>${Object.keys(r.players || {}).length}/2</small></button>`).join('')
       || '<p class="empty">열린 방이 없어요.<br>방을 만들어 보세요!</p>';
   }, e => toast('방 목록 오류: ' + e.code));
 }
@@ -27,7 +27,7 @@ async function makeRoom(pw) {
   const types = myDeck(); if (!types.length) return noCards();
   const ref = rdb().ref('rooms').push();
   try {
-    await ref.set({ host: uid(), hostName: U.name, pw: pw ? sha256(`${pw}:${ref.key}`) : '', state: 'wait', players: { [uid()]: { name: U.name, deck: types } } });
+    await ref.set({ host: uid(), hostName: U.name, pw: pw ? sha256(`${pw}:${ref.key}`) : '', state: 'wait', players: { [uid()]: { name: U.name, deck: types, photo: U.photo || '' } } });
   } catch (e) { return toast('방 만들기 실패: ' + e.code); }
   ref.onDisconnect().remove();
   enterRoom(ref.key, true);
@@ -48,7 +48,7 @@ async function joinRoom(id) {
   const res = await rdb().ref(`rooms/${id}/players`).transaction(p => {
     p = p || {};
     if (!p[me] && Object.keys(p).length >= 2) return;
-    p[me] = { name: U.name, deck: types };
+    p[me] = { name: U.name, deck: types, photo: U.photo || '' };
     return p;
   });
   if (!res.committed) return toast('방이 가득 찼어요.');
@@ -78,7 +78,7 @@ function onRoom(r) {
   }
   const ps = Object.entries(r.players || {}).sort(([a]) => a === r.host ? -1 : 1);
   $('r-title').textContent = `${r.hostName}님의 방${r.pw ? ' 🔒' : ''}`;
-  $('r-slots').innerHTML = [0, 1].map(i => { const p = ps[i]; return `<div class="slot${p ? ' on' : ''}">${p ? (p[0] === r.host ? '👑 ' : '') + esc(p[1].name) : '대기 중...'}</div>`; }).join('');
+  $('r-slots').innerHTML = [0, 1].map(i => { const p = ps[i]; return `<div class="slot${p ? ' on' : ''}">${p ? (p[0] === r.host ? '👑 ' : '') + avHtml(p[1].photo, 'sm') + esc(p[1].name) : '대기 중...'}</div>`; }).join('');
   $('r-start').hidden = !R.host; $('r-start').disabled = ps.length < 2;
   $('r-msg').textContent = R.host ? (ps.length < 2 ? '상대가 들어오길 기다리는 중이에요.' : '준비 완료! 게임을 시작하세요.') : '방장이 게임을 시작할 때까지 기다려 주세요.';
   if (r.state === 'play' && ps.length === 2) startPvp(ps);
@@ -118,7 +118,7 @@ function startPvp(ps) {
   const c2 = evRef.on('child_added', s => { const e = s.val(); if (e && e.u !== me) foeAttack(e); });
   R.offs.push(() => stRef.child(fid).off('value', c1), () => evRef.off('child_added', c2));
 
-  battle({ who: U.name, tag: '멀티', botName: foe.name, bot: 100, p: { windup: 900, shield: 0 }, skill: true, shield: true, quit: true, deck: mine.deck, delay: 3000,
+  battle({ who: U.name, tag: '멀티', botName: foe.name, foe: { deck: foe.deck, photo: foe.photo }, bot: 100, p: { windup: 900, shield: 0 }, skill: true, shield: true, quit: true, deck: mine.deck, delay: 3000,
     hint: () => '상대와 실시간 대결! 평타로 게이지를 모아 스킬을 쓰세요.',
     pvp: { send: (k, d) => evRef.push({ u: me, k, d }) },
     sync: () => { const c = S.cards[S.cur]; stRef.child(me).set({ hp: c.hp, max: CARDS[c.type].hp, en: c.en, left: S.cards.filter(x => x.hp > 0).length, blk: S.myBlk }); },
