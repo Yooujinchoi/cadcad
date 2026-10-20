@@ -9,7 +9,7 @@ firebase.initializeApp({
   appId: "1:388739327635:web:bd8748e8a56310ddf50f66",
 });
 const auth = firebase.auth(), db = firebase.firestore();
-const ADMIN_EMAIL = 'yoojin_choi@kimul.app'; // 아이디 Yoojin_choi 로 가입한 계정이 관리자
+const ADMIN_EMAIL = 'yooujin_choi@kimul.app'; // 아이디 Yooujin_choi 로 가입한 계정이 관리자
 const mail = id => `${id}@kimul.app`;
 const uid = () => auth.currentUser.uid;
 const PULL_BP = 1000, NAME_MAX = 8;
