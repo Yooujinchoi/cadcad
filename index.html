@@ -30,16 +30,23 @@
       <div class="bot" id="bot"><div class="face"><i></i><i></i></div><u></u></div>
       <div class="nm">대충 훈련봇</div>
       <div class="hp"><div id="hpf"></div><span id="hpt"></span></div>
+      <div class="sp" id="bsp"><div id="bspf"></div></div>
     </div>
 
     <p class="hint" id="hint"></p>
 
     <div class="hand">
-      <button class="card" id="card" type="button" aria-label="평범한 김울 카드 사용">
-        <img src="kimul.jpg" alt="평범한 김울">
-        <span class="skill"><span class="atk"><b id="n1"></b><em id="d1"></em></span><span class="atk sk" id="sk" hidden><b id="n2"></b><em id="d2"></em></span></span>
-        <span class="cd" id="cd"></span><span class="charge"></span>
-      </button>
+      <div class="side"><div class="mini" id="mini"><img src="kimul.jpg" alt="대기 카드"><div class="hp"><div id="mhf"></div></div></div></div>
+      <div class="active" id="active">
+        <button class="card" id="card" type="button" aria-label="평범한 김울 카드">
+          <img src="kimul.jpg" alt="평범한 김울">
+          <span class="skill"><span class="atk"><b id="n1"></b><em id="d1"></em></span><span class="atk sk" id="sk" hidden><b id="n2"></b><em id="d2"></em></span></span>
+          <span class="cd" id="cd"></span><span class="charge"></span>
+        </button>
+        <div class="hp"><div id="chf"></div><span id="cht"></span></div>
+        <div class="sp" id="psp"><div id="pspf"></div><span id="pspt"></span></div>
+      </div>
+      <div class="side"><button class="shield" id="shield" type="button" aria-label="방어막"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/></svg><b id="shn">3</b></button></div>
     </div>
   </section>
 
