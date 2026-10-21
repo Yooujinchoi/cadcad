@@ -277,7 +277,7 @@ $('sel-del').onclick = () => {
 
 function detail(t) {
   const d = CARDS[t], own = U.inv.filter(c => c.type === t), inDeck = own.filter(c => U.deck.includes(c.id)).length;
-  panel(d.name, `등급 ${rar(t).name} · 보유 ${own.length}장${inDeck ? ` (출격 ${inDeck}장)` : ''}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: 데미지 ${d.skill.dmg} (스킬포인트 ${d.skill.cost} 필요)`,
+  panel(d.name, `등급 ${rar(t).name} · 보유 ${own.length}장${inDeck ? ` (출격 ${inDeck}장)` : ''}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)${d.skill.buff ? '\n※ 스킬 효과 중에는 스킬포인트가 쌓이지 않아요' : ''}`,
     '닫기', null, '카드 폐기', () => discardAsk(t), d.img);
 }
 function discardAsk(t) {

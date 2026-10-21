@@ -281,3 +281,8 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .skill em{min-width:22px;height:22px;font-size:13px}
 .skill .atk:first-child{flex:none}
 #bench{flex-direction:row;justify-content:center;gap:8px}
+
+/* v26: 버프 스킬(신난다) 효과 표시 */
+.active.buffed .card{box-shadow:0 0 0 3px #7cff6b,0 0 30px #7cff6b}
+.active.shielded.buffed .card{box-shadow:0 0 0 3px #6fd8ff,0 0 36px #6fd8ff}
+.dmg.buff{font-size:28px;color:#7cff6b}

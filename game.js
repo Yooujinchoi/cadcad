@@ -35,10 +35,18 @@ const CARDS = {
   soyul: { name: '평범한 소율', img: 'soyul.jpg', rarity: 'kimul', hp: 120,
     basic: { name: '평타', dmg: 6, cd: 500, gain: 5 },
     skill: { name: '멘탈공격', dmg: 40, cd: 800, cost: 100, hold: 450 } },
+  // 버프 스킬: 데미지 대신 3초 동안 평타가 22 데미지 · 0.2초마다로 바뀜
+  shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 400,
+    basic: { name: '평타', dmg: 20, cd: 800, gain: 6.5 },
+    skill: { name: '신난다', dmg: 0, cd: 300, cost: 80, hold: 450, buff: { ms: 3000, dmg: 22, cd: 200 } } },
 };
 // 튜토리얼 전용 평범한 김울(버프): 평타 7, 스킬포인트 +10. 컬렉션·뽑기·관리자 지급에는 안 나옴
 CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };
 const rar = t => RARITY[CARDS[t].rarity];
+// 버프 스킬 효과 중에는 평타가 바뀌고, 스킬포인트는 쌓이지 않음 (무한 연속 사용 방지)
+const buffOn = c => c.buffUntil > performance.now();
+const basicOf = c => { const d = CARDS[c.type], b = d.skill.buff; return b && buffOn(c) ? { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 } : d.basic; };
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.dmg}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -98,8 +106,8 @@ function renderPlayer() {
   const c = S.cards[S.cur], d = CARDS[c.type];
   card.style.setProperty('--rc', rar(c.type).color);
   if (!$('cimg').src.endsWith(d.img)) $('cimg').src = d.img;
-  $('n1').textContent = d.basic.name; $('d1').textContent = d.basic.dmg;
-  $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.dmg;
+  $('n1').textContent = d.basic.name; $('d1').textContent = basicOf(c).dmg; $('active').classList.toggle('buffed', buffOn(c));
+  $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.buff ? '⚡' : d.skill.dmg;
   $('chf').style.width = pct(c.hp, d.hp);
   $('cht').textContent = `HP ${c.hp} / ${d.hp}`;
   $('pspf').style.width = c.en + '%';
@@ -267,8 +275,9 @@ $('bench').addEventListener('click', e => {
 
 function attack(kind) {
   if (!S.ready || S.busy) return;
-  const c = S.cards[S.cur], a = CARDS[c.type][kind], big = kind === 'skill';
+  const c = S.cards[S.cur], a = kind === 'basic' ? basicOf(c) : CARDS[c.type].skill, big = kind === 'skill';
   if (big) { if (c.en < a.cost) return; c.en -= a.cost; renderPlayer(); }
+  if (big && a.buff) return startBuff(c, a);
   S.busy = true;
   card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
 
@@ -294,6 +303,18 @@ function attack(kind) {
     $('bot').classList.add('shielded'); setTimeout(() => $('bot').classList.remove('shielded'), SHIELD_MS);
   }
   fly(card, $('bot'), big ? 'orb eye' : 'orb', big ? 2.6 : 1.5, big ? 460 : 380, () => hit(a, big, c, blocked));
+}
+
+function startBuff(c, a) {
+  const t = S.tok;
+  c.buffUntil = performance.now() + a.buff.ms;
+  S.busy = true; later(() => { S.busy = false; }, a.cd);
+  card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
+  navigator.vibrate?.([20, 40, 20]);
+  floatTxt($('active'), a.name + '!', 'dmg me buff');
+  say(`${a.name}! ${a.buff.ms / 1000}초 동안 평타가 빨라져요!`);
+  renderPlayer();
+  setTimeout(() => { if (S.tok === t) renderPlayer(); }, a.buff.ms + 30);
 }
 
 function hit(a, big, c, blocked) {
