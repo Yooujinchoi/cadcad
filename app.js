@@ -308,7 +308,7 @@ function deck() {
   $('deck-cnt').textContent = `${used.length}/5`;
   $('deck-slots').innerHTML = [0, 1, 2, 3, 4].map(i => {
     const c = used[i];
-    if (!c) return `<div class="slot5 empty"><span>${i + 1}</span></div>`;
+    if (!c) return `<div class="slot5 vacant"><span>${i + 1}</span></div>`;
     return `<button class="slot5" data-i="${i}" style="--rc:${rar(c.type).color}" aria-label="${CARDS[c.type].name} 빼기"><img src="${CARDS[c.type].img}" alt=""><i class="no">${i + 1}</i></button>`;
   }).join('');
   $('deck-grid').innerHTML = groups().map(g => {
