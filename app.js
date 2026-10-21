@@ -287,11 +287,32 @@ $('deck-grid').addEventListener('click', e => {
 });
 
 /* ── 뽑기 ── */
-const POOL = [{ type: 'kimul', w: 82 }, { type: 'nature', w: 10 }, { type: 'yongsa', w: 5 }, { type: 'ltake', w: 2 }, { type: 'angry', w: 1 }]; // w = 확률(%) 합계 100
-const pickCard = () => { let x = Math.random() * 100; for (const p of POOL) { if ((x -= p.w) < 0) return p.type; } return POOL[0].type; };
+// 등급별 뽑기 확률(%) — 냥코대전쟁 레어뽑기 참고, 울트라 슈퍼 레어 7 · 민준급 3으로 상향 (합계 100)
+const RATES = { kimul: 35, worm: 20, rare: 10, sr: 25, usr: 7, minjun: 3 };
+const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && CARDS[k].rarity === r);
+// 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
+function effRates() {
+  const eff = {}; let carry = 0, last = null;
+  for (const r of Object.keys(RARITY).sort((a, b) => RARITY[b].rank - RARITY[a].rank)) {
+    carry += RATES[r] || 0;
+    if (poolOf(r).length) { eff[r] = carry; carry = 0; last = r; }
+  }
+  if (carry && last) eff[last] += carry;
+  return eff;
+}
+const pickCard = () => {
+  const eff = effRates(); let x = Math.random() * 100, r;
+  for (r in eff) if ((x -= eff[r]) < 0) break;
+  const p = poolOf(r); return p[Math.floor(Math.random() * p.length)];
+};
+const rateText = () => {
+  const eff = effRates(), empty = Object.keys(RATES).filter(r => RATES[r] && !poolOf(r).length).map(r => RARITY[r].name);
+  return '확률 · ' + Object.keys(eff).sort((a, b) => RARITY[a].rank - RARITY[b].rank).map(r => `${RARITY[r].name} ${+eff[r].toFixed(1)}% (${poolOf(r).map(k => CARDS[k].name).join(', ')})`).join(' / ')
+    + (empty.length ? ` · ${empty.join(', ')} 카드는 아직 없어서 아래 등급에 합산` : '');
+};
 function gacha() {
   pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal();
-  $('g-rate').textContent = '확률 · ' + POOL.map(p => `${CARDS[p.type].name}(${rar(p.type).name}) ${p.w}%`).join(' / ');
+  $('g-rate').textContent = rateText();
   $('g-tiers').innerHTML = '<em>낮음</em>' + Object.values(RARITY).sort((a, b) => a.rank - b.rank).map(r => `<span style="background:${r.color}">${r.name}</span>`).join('<i>›</i>') + '<em>높음</em>';
   show('s-gacha');
 }
