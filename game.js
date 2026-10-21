@@ -25,6 +25,9 @@ const CARDS = {
   angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1800,
     basic: { name: '평타', dmg: 35, cd: 500, gain: 10 },
     skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 } },
+  nature: { name: '자연인 김승현', img: 'nature.jpg', rarity: 'rare', hp: 300,
+    basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
+    skill: { name: '정글카이팅', dmg: 60, cd: 800, cost: 80, hold: 450 } },
 };
 // 튜토리얼 전용 평범한 김울(버프): 평타 7, 스킬포인트 +10. 컬렉션·뽑기·관리자 지급에는 안 나옴
 CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };

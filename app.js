@@ -262,7 +262,7 @@ $('sel-del').onclick = () => {
 
 function detail(c) {
   const d = CARDS[c.type];
-  panel(d.name, `등급 ${rar(c.type).name}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} (스킬포인트 +${d.basic.gain})\n${d.skill.name}: 데미지 ${d.skill.dmg} (스킬포인트 ${d.skill.cost} 필요)`,
+  panel(d.name, `등급 ${rar(c.type).name}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: 데미지 ${d.skill.dmg} (스킬포인트 ${d.skill.cost} 필요)`,
     '닫기', null, '카드 폐기', () => discard(c), d.img);
 }
 function discard(c) {
@@ -287,7 +287,7 @@ $('deck-grid').addEventListener('click', e => {
 });
 
 /* ── 뽑기 ── */
-const POOL = [{ type: 'kimul', w: 94 }, { type: 'yongsa', w: 5 }, { type: 'angry', w: 1 }]; // w = 확률(%) 합계 100
+const POOL = [{ type: 'kimul', w: 84 }, { type: 'nature', w: 10 }, { type: 'yongsa', w: 5 }, { type: 'angry', w: 1 }]; // w = 확률(%) 합계 100
 const pickCard = () => { let x = Math.random() * 100; for (const p of POOL) { if ((x -= p.w) < 0) return p.type; } return POOL[0].type; };
 function gacha() {
   pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal();

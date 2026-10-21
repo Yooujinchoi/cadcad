@@ -225,3 +225,8 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .selbar{display:flex;gap:10px;padding-top:8px}
 .selbar .btn{flex:1}
 #bsp{height:16px}
+
+/* v15: 긴 스킬 이름이 카드 위 띠에서 넘치지 않게 */
+.skill{gap:6px}
+.skill .atk{min-width:0}
+.skill .atk b{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
