@@ -134,6 +134,7 @@ function tutorialDone() {
 /* ── 메뉴 ── */
 function menu() {
   $('m-name').textContent = U.name; $('m-wal').textContent = wal(); $('m-av').innerHTML = avHtml(U.photo);
+  $('m-dot').hidden = U.seenPatch === PATCHES[0].v;
   show('s-menu');
 }
 $('m-ai').onclick = diffs;
@@ -142,6 +143,14 @@ $('m-shop').onclick = shop;
 $('m-coll').onclick = () => { collSel = null; coll(); };
 $('m-gacha').onclick = gacha;
 $('m-out').onclick = () => { auth.signOut(); U = null; show('s-auth'); };
+
+/* ── 패치 내역 (내용은 patches.js) ── */
+function patches() {
+  $('patch-list').innerHTML = PATCHES.map((p, i) => `<article class="patch${i === 0 ? ' new' : ''}"><h3>v${esc(p.v)} · ${esc(p.title)}${i === 0 ? '<em>NEW</em>' : ''}</h3><ul>${p.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></article>`).join('');
+  show('s-patch');
+  if (U.seenPatch !== PATCHES[0].v) { U.seenPatch = PATCHES[0].v; persist(); }
+}
+$('m-patch').onclick = patches;
 
 /* ── 프로필 (사진은 128px로 줄여 Firestore에 저장) ── */
 function profile() {

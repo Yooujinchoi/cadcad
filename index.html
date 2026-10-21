@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
 <main id="app">
@@ -44,13 +44,18 @@
       <button class="mbtn big" id="m-shop">상점</button>
     </div>
     <div class="row"><button class="mbtn" id="m-coll">컬렉션</button><button class="mbtn" id="m-gacha">뽑기하러가기</button></div>
-    <button class="link" id="m-out">로그아웃</button>
+    <div class="foot"><button class="link" id="m-patch">패치 내역<span class="dot" id="m-dot" hidden></span></button><button class="link" id="m-out">로그아웃</button></div>
   </section>
 
   <section id="s-shop" class="screen" hidden>
     <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>상점</h2></header>
     <p class="sub" id="sh-wal"></p>
     <div class="shoplist" id="sh-list"></div>
+  </section>
+
+  <section id="s-patch" class="screen" hidden>
+    <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>패치 내역</h2></header>
+    <div class="patches" id="patch-list"></div>
   </section>
 
   <section id="s-prof" class="screen" hidden>
@@ -151,7 +156,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="game.js?v=17"></script>
-<script src="app.js?v=19"></script>
+<script src="patches.js?v=1"></script>
+<script src="app.js?v=20"></script>
 <script src="multi.js?v=11"></script>
 </body>
 </html>
