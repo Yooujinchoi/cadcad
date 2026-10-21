@@ -82,7 +82,7 @@ async function loadUser() {
   U.admin = u.email === ADMIN_EMAIL;
   if (U.admin) {
     U.tut = true;
-    for (const t in CARDS) while (U.inv.filter(c => c.type === t).length < 5) U.inv.push({ id: U.seq++, type: t });
+    for (const t in CARDS) if (!CARDS[t].tutorial) while (U.inv.filter(c => c.type === t).length < 5) U.inv.push({ id: U.seq++, type: t });
   }
   if (!snap.exists || U.admin) await persist();
 }

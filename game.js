@@ -26,18 +26,20 @@ const CARDS = {
     basic: { name: '평타', dmg: 35, cd: 500, gain: 10 },
     skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 } },
 };
+// 튜토리얼 전용 평범한 김울(버프): 평타 7, 스킬포인트 +10. 컬렉션·뽑기·관리자 지급에는 안 나옴
+CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };
 const rar = t => RARITY[CARDS[t].rarity];
 
-// 튜토리얼 훈련봇 (플레이어 최속 스킬 ≈5.4초 < 봇 스킬 시전 4.2초)
-const TUT_BOT = { dmg: 3, gap: 800, gain: 25, sdmg: 25, windup: 1000, shield: 0 };
+// 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
+const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
 const TUTORIAL = [
-  { bot: 30, deal: true,
+  { bot: 30, deal: true, deck: ['kimul_tut'],
     intro: '이 게임은 카드를 뽑아 상대방을 조지는 게임입니다.\n처음에는 기본카드인 평범한 김울 카드를 지급해드립니다.\n공격방법은 카드를 누르면 상대방에게 기본공격이 나갑니다.',
     hint: n => `${n}님, 카드를 눌러 기본공격을 해보세요!`, after: '좋아요! 계속 눌러서 처치하세요.' },
-  { bot: 200, skill: true,
+  { bot: 200, skill: true, deck: ['kimul_tut'],
     intro: '이제 기본공격이 아닌 스킬을 사용해 봅시다.\n카드를 꾹 눌러 스킬을 사용해보세요.',
     hint: () => '평타를 쳐서 스킬 게이지를 채우세요!' },
-  { bot: 300, skill: true, atk: true, shield: true, deck: ['kimul', 'kimul'], deal: true,
+  { bot: 300, skill: true, atk: true, shield: true, deck: ['kimul_tut', 'kimul_tut'], deal: true,
     intro: '이 게임은 포켓몬고 형식의 전투방식을 가지고 있습니다.\n훈련봇과 전투하여 승리를 가져오세요.\n방어막을 적절히 활용하세요.',
     hint: () => '카드가 2장 지급됐어요! 방어막으로 스킬을 막고, 작은 카드를 눌러 교체할 수 있어요.' },
 ];
