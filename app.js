@@ -12,7 +12,7 @@ const auth = firebase.auth(), db = firebase.firestore();
 const ADMIN_EMAIL = 'yooujin_choi@kimul.app'; // 아이디 Yooujin_choi 로 가입한 계정이 관리자
 const mail = id => `${id}@kimul.app`;
 const uid = () => auth.currentUser.uid;
-const PULL_BP = 1000, NAME_MAX = 8;
+const NAME_MAX = 8;
 const DIFFS = [
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 5, sdmg: 5, windup: 1800, shield: 0 } },
   { name: '쉬움', info: '입문용', bot: 200, bp: 200, p: { dmg: 5, gap: 1200, gain: 5, sdmg: 40, cost: 100, windup: 1400, shield: 0 } },
@@ -171,8 +171,8 @@ $('pf-rn').onclick = () => {
 
 /* ── 상점 (BP로 구매) ── */
 const ITEMS = [
-  { icon: '🎟', name: '뽑기 티켓 1장', price: 300, give: u => { u.tickets += 1; } },
-  { icon: '🎟', name: '뽑기 티켓 10장', price: 2800, note: '장당 280 BP', give: u => { u.tickets += 10; } },
+  { icon: '🎟', name: '뽑기 티켓 1장', price: 500, give: u => { u.tickets += 1; } },
+  { icon: '🎟', name: '뽑기 티켓 10장', price: 4800, note: '장당 480 BP', give: u => { u.tickets += 10; } },
   { icon: '✏️', name: '이름변경권 1장', price: 1000, give: u => { u.nt = (u.nt || 0) + 1; } },
 ];
 function shop() {
@@ -327,10 +327,9 @@ function gacha() {
 
 function draw(n) {
   if (pulling) return;
-  if (!U.admin) {
-    const useT = Math.min(U.tickets, n), bp = (n - useT) * PULL_BP;
-    if (U.bp < bp) return toast('뽑기권 또는 BP가 부족해요.');
-    U.tickets -= useT; U.bp -= bp;
+  if (!U.admin) { // 뽑기는 뽑기권으로만
+    if (U.tickets < n) return panel('뽑기권이 부족해요', `${n}회 뽑기에는 뽑기권 ${n}장이 필요해요. (보유 ${U.tickets}장)\n상점에서 뽑기권을 살 수 있어요.`, '상점으로', shop, '닫기');
+    U.tickets -= n;
   }
   const got = Array.from({ length: n }, () => ({ id: U.seq++, type: pickCard() }));
   U.inv.push(...got); persist();
