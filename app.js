@@ -14,6 +14,7 @@ const mail = id => `${id}@kimul.app`;
 const uid = () => auth.currentUser.uid;
 const NAME_MAX = 8;
 const DIFFS = [
+  { name: '훈련봇', info: '체력 무한 · 공격 안 함 · 방어막 안 씀 · 보상 없음 (연습용)', train: true, bot: 1, bp: 0, p: { dmg: 0, gap: 1000, gain: 0, sdmg: 0, windup: 1000, shield: 0 } },
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 5, sdmg: 5, windup: 1800, shield: 0 } },
   { name: '쉬움', info: '입문용', bot: 200, bp: 200, p: { dmg: 5, gap: 1200, gain: 5, sdmg: 40, cost: 100, windup: 1400, shield: 0 } },
   { name: '보통', info: '봇도 방어막 사용', bot: 500, bp: 400, p: { dmg: 7, gap: 900, gain: 5, sdmg: 55, cost: 80, windup: 1100, shield: .35 } },
@@ -220,7 +221,7 @@ function myDeck() {
   return types;
 }
 function diffs() {
-  $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.info} · 체력 ${fmt(d.bot)} · 평타 ${d.p.dmg} · 스킬 ${d.p.sdmg} · 스킬포인트 ${d.p.cost || 100} · 승리 +${fmt(d.bp)} BP</small></button>`).join('');
+  $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.train ? d.info : `${d.info} · 체력 ${fmt(d.bot)} · 평타 ${d.p.dmg} · 스킬 ${d.p.sdmg} · 스킬포인트 ${d.p.cost || 100} · 승리 +${fmt(d.bp)} BP`}</small></button>`).join('');
   show('s-diff');
 }
 $('diff-list').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) startAI(DIFFS[+b.dataset.i]); });
@@ -228,8 +229,8 @@ $('diff-list').addEventListener('click', e => { const b = e.target.closest('[dat
 function startAI(d) {
   const types = myDeck();
   if (!types.length) return panel('카드가 없어요', '뽑기에서 카드를 먼저 뽑아주세요.', '확인');
-  battle({ who: U.name, tag: d.name, botName: `${d.name} 봇`, bot: d.bot, p: d.p, atk: true, skill: true, shield: true, quit: true, deck: types,
-    hint: () => '전투 시작! 평타로 게이지를 모아 스킬을 쓰세요.',
+  battle({ who: U.name, tag: d.name, botName: d.train ? '훈련봇' : `${d.name} 봇`, bot: d.bot, p: d.p, atk: !d.train, dummy: !!d.train, skill: true, shield: true, quit: true, deck: types,
+    hint: () => d.train ? '훈련봇은 공격하지 않아요. 평타 · 스킬 · 교체를 마음껏 연습하고, 다 하면 나가기를 누르세요.' : '전투 시작! 평타로 게이지를 모아 스킬을 쓰세요.',
     win: () => { if (!U.admin) U.bp += d.bp; persist(); panel('승리!', `${d.name} 봇을 쓰러뜨렸어요!\n+${d.bp} BP`, '메뉴로', menu, '다시 하기', () => startAI(d)); },
     lose: () => panel('패배', '카드가 모두 쓰러졌어요.', '다시 도전', () => startAI(d), '메뉴로', menu) });
 }

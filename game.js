@@ -96,6 +96,13 @@ function tutorial(i) {
 /* ── 화면 갱신 ── */
 function renderBot() {
   const b = S.bot;
+  if (S.cfg && S.cfg.dummy) { // 연습용 훈련봇: 체력 무한, 누적·초당 데미지 표시
+    const sec = S.dmgStart ? (performance.now() - S.dmgStart) / 1000 : 0;
+    $('hpf').style.width = '100%';
+    $('hpt').textContent = `∞ · 누적 데미지 ${S.dmgTotal.toLocaleString('en-US')}`;
+    $('bname').textContent = `훈련봇 · 초당 데미지 ${sec >= 1 ? (S.dmgTotal / sec).toFixed(1) : '-'}`;
+    return;
+  }
   $('hpf').style.width = pct(b.hp, b.max);
   $('hpt').textContent = `${b.hp} / ${b.max}`;
   $('bspf').style.width = pct(b.en, b.cost);
@@ -138,7 +145,7 @@ function fly(from, to, cls, scale, dur, cb) {
 function battle(cfg) {
   S.tok++;
   const types = cfg.deck || ['kimul'];
-  Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0, myBlk: 0,
+  Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0, myBlk: 0, dmgTotal: 0, dmgStart: 0,
     bot: { hp: cfg.bot, max: cfg.bot, en: 0, sh: 3, cost: cfg.p.cost || 100 },
     cards: types.map(t => ({ type: t, hp: CARDS[t].hp, en: 0 })) });
   $('who').textContent = cfg.who;
@@ -321,7 +328,8 @@ function hit(a, big, c, blocked) {
   if (!S.ready) return;
   const b = S.bot, bot = $('bot');
   if (blocked) { floatTxt($('enemy'), '방어!', 'dmg blk'); say('봇이 방어막으로 스킬을 막았어요!'); return; }
-  b.hp = Math.max(0, b.hp - a.dmg);
+  if (S.cfg.dummy) { S.dmgTotal += a.dmg; S.dmgStart = S.dmgStart || performance.now(); }
+  else b.hp = Math.max(0, b.hp - a.dmg);
   renderBot();
   navigator.vibrate?.(big ? [30, 30, 50] : 25);
   restart(bot, 'hurt'); setTimeout(() => bot.classList.remove('hurt'), 300);
