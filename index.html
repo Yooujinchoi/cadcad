@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=23">
 </head>
 <body>
 <main id="app">
@@ -83,7 +83,8 @@
 
   <section id="s-deck" class="screen" hidden>
     <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>출격 카드 설정</h2><span id="deck-cnt"></span></header>
-    <p class="sub">전투에 데려갈 카드를 최대 5장까지 고르세요.</p>
+    <p class="sub">아래 카드를 누르면 칸에 들어가고, 칸을 누르면 빠져요. 1번 칸 카드가 먼저 나가요.</p>
+    <div class="slots5" id="deck-slots"></div>
     <div class="grid" id="deck-grid"></div>
   </section>
 
@@ -156,8 +157,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="game.js?v=21"></script>
-<script src="patches.js?v=3"></script>
-<script src="app.js?v=22"></script>
-<script src="multi.js?v=11"></script>
+<script src="patches.js?v=4"></script>
+<script src="app.js?v=23"></script>
+<script src="multi.js?v=23"></script>
 </body>
 </html>

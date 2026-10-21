@@ -239,60 +239,94 @@ const byRank = (a, b) => rar(b.type).rank - rar(a.type).rank || a.id - b.id;
 const cardEl = (c, extra = '', n = '') => { const d = CARDS[c.type], r = rar(c.type); return `<button class="cc${extra}" data-id="${c.id}" style="--rc:${r.color}"><img src="${d.img}" alt="${d.name}"><i class="rt" style="background:${r.color}">${r.name}</i>${n}</button>`; };
 const EMPTY = '<p class="empty">아직 카드가 없어요.<br>뽑기에서 카드를 뽑아보세요!</p>';
 
+// 같은 카드는 한 칸으로 묶어서 보여줌 (높은 등급 먼저)
+const groups = () => {
+  const m = {}; for (const c of U.inv) (m[c.type] = m[c.type] || []).push(c);
+  return Object.keys(m).sort((a, b) => rar(b).rank - rar(a).rank || a.localeCompare(b)).map(t => ({ type: t, list: m[t] }));
+};
+const tileEl = (t, count, extra = '', badge = '') => {
+  const d = CARDS[t], r = rar(t);
+  return `<button class="tile${extra}" data-t="${t}" style="--rc:${r.color}"><span class="art"><img src="${d.img}" alt="${d.name}">${badge}<i class="cnt">×${count}</i></span><b class="tn">${d.name}</b><span class="tr">${r.name}</span></button>`;
+};
+
 function coll() {
-  const sel = collSel, n = U.inv.length;
-  $('coll-cnt').textContent = sel ? `${sel.size}/${n}장 선택` : `${n}장`;
+  const sel = collSel, gs = groups(), n = U.inv.length;
+  const picked = sel ? U.inv.filter(c => sel.has(c.type)).length : 0;
+  $('coll-cnt').textContent = sel ? `${picked}장 선택` : `${gs.length}종 · ${n}장`;
   $('coll-sel').textContent = sel ? '취소' : '선택 폐기';
   $('coll-bar').hidden = !sel;
-  if (sel) { $('sel-del').textContent = `폐기 (${sel.size})`; $('sel-all').textContent = sel.size === n ? '선택 해제' : '전체 선택'; }
-  $('coll-grid').innerHTML = U.inv.slice().sort(byRank).map(c => sel && sel.has(c.id) ? cardEl(c, ' sel', '<i class="no">✓</i>') : cardEl(c)).join('') || EMPTY;
+  if (sel) { $('sel-del').textContent = `폐기 (${picked})`; $('sel-all').textContent = gs.length && sel.size === gs.length ? '선택 해제' : '전체 선택'; }
+  $('coll-grid').innerHTML = gs.map(g => { const on = sel && sel.has(g.type); return tileEl(g.type, g.list.length, on ? ' sel' : '', on ? '<i class="no">✓</i>' : ''); }).join('') || EMPTY;
   show('s-coll');
 }
 const redraw = () => { const g = $('coll-grid'), y = g.scrollTop; coll(); g.scrollTop = y; };
 $('coll-grid').addEventListener('click', e => {
-  const b = e.target.closest('[data-id]'); if (!b) return;
-  const id = +b.dataset.id;
-  if (!collSel) return detail(U.inv.find(c => c.id === id));
-  collSel.has(id) ? collSel.delete(id) : collSel.add(id);
+  const b = e.target.closest('[data-t]'); if (!b) return;
+  const t = b.dataset.t;
+  if (!collSel) return detail(t);
+  collSel.has(t) ? collSel.delete(t) : collSel.add(t); // 선택 모드: 그 카드 전부 선택
   redraw();
 });
 $('coll-sel').onclick = () => { collSel = collSel ? null : new Set(); redraw(); };
-$('sel-all').onclick = () => { collSel = collSel.size === U.inv.length ? new Set() : new Set(U.inv.map(c => c.id)); redraw(); };
+$('sel-all').onclick = () => { const gs = groups(); collSel = collSel.size === gs.length ? new Set() : new Set(gs.map(g => g.type)); redraw(); };
 $('sel-del').onclick = () => {
-  const ids = collSel, picked = U.inv.filter(c => ids.has(c.id)), n = picked.length;
-  if (!n) return toast('폐기할 카드를 선택하세요.');
-  const high = picked.filter(c => rar(c.type).rank >= 3).length, inDeck = picked.filter(c => U.deck.includes(c.id)).length;
-  const warn = [high && `슈퍼레어 이상 ${high}장`, inDeck && `출격 카드 ${inDeck}장`].filter(Boolean).join(', ');
-  panel('카드 폐기', `선택한 ${n}장을 정말 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)${warn ? `\n⚠ ${warn} 포함` : ''}`, '취소', null, '폐기하기', () => {
-    U.inv = U.inv.filter(c => !ids.has(c.id)); U.deck = U.deck.filter(id => !ids.has(id));
-    collSel = null; persist(); coll(); toast(`${n}장을 폐기했어요.`);
-  });
+  const list = U.inv.filter(c => collSel.has(c.type));
+  if (!list.length) return toast('폐기할 카드를 선택하세요.');
+  confirmDiscard(list, () => { collSel = null; });
 };
 
-function detail(c) {
-  const d = CARDS[c.type];
-  panel(d.name, `등급 ${rar(c.type).name}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: 데미지 ${d.skill.dmg} (스킬포인트 ${d.skill.cost} 필요)`,
-    '닫기', null, '카드 폐기', () => discard(c), d.img);
+function detail(t) {
+  const d = CARDS[t], own = U.inv.filter(c => c.type === t), inDeck = own.filter(c => U.deck.includes(c.id)).length;
+  panel(d.name, `등급 ${rar(t).name} · 보유 ${own.length}장${inDeck ? ` (출격 ${inDeck}장)` : ''}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: 데미지 ${d.skill.dmg} (스킬포인트 ${d.skill.cost} 필요)`,
+    '닫기', null, '카드 폐기', () => discardAsk(t), d.img);
 }
-function discard(c) {
-  panel('카드 폐기', '정말 카드를 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)', '취소', () => detail(c), '폐기하기', () => {
-    U.inv = U.inv.filter(x => x.id !== c.id); U.deck = U.deck.filter(id => id !== c.id);
-    persist(); coll(); toast('카드를 폐기했어요.');
+function discardAsk(t) {
+  const own = U.inv.filter(c => c.type === t);
+  if (own.length <= 1) return confirmDiscard(own);
+  ask('카드 폐기', `몇 장 폐기할까요? (보유 ${own.length}장)\n출격 중이 아닌 카드부터 폐기돼요.`, `1 ~ ${own.length}`, v => {
+    const k = Math.floor(Number(v));
+    if (!(k >= 1 && k <= own.length)) return toast(`1부터 ${own.length}까지 입력하세요.`);
+    confirmDiscard(own.slice().sort((a, b) => U.deck.includes(a.id) - U.deck.includes(b.id)).slice(0, k));
+  }, 3);
+  $('p-in').inputMode = 'numeric';
+}
+function confirmDiscard(list, after) {
+  const n = list.length, ids = new Set(list.map(c => c.id));
+  const high = list.filter(c => rar(c.type).rank >= 3).length, inDeck = list.filter(c => U.deck.includes(c.id)).length;
+  const warn = [high && `슈퍼레어 이상 ${high}장`, inDeck && `출격 카드 ${inDeck}장`].filter(Boolean).join(', ');
+  panel('카드 폐기', `${n === 1 ? '정말 카드를' : `정말 카드 ${n}장을`} 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)${warn ? `\n⚠ ${warn} 포함` : ''}`, '취소', null, '폐기하기', () => {
+    U.inv = U.inv.filter(c => !ids.has(c.id)); U.deck = U.deck.filter(id => !ids.has(id));
+    if (after) after();
+    persist(); coll(); toast(`${n}장을 폐기했어요.`);
   });
 }
 
+// 출격 카드: 위 5칸 = 출격 순서, 아래 = 보유 카드(남은 수량)
 function deck() {
-  $('deck-cnt').textContent = `${U.deck.length}/5`;
-  $('deck-grid').innerHTML = U.inv.slice().sort(byRank).map(c => { const i = U.deck.indexOf(c.id); return cardEl(c, i >= 0 ? ' sel' : '', i >= 0 ? `<i class="no">${i + 1}</i>` : ''); }).join('') || EMPTY;
+  const used = U.deck.map(id => U.inv.find(c => c.id === id)).filter(Boolean);
+  U.deck = used.map(c => c.id);
+  $('deck-cnt').textContent = `${used.length}/5`;
+  $('deck-slots').innerHTML = [0, 1, 2, 3, 4].map(i => {
+    const c = used[i];
+    if (!c) return `<div class="slot5 empty"><span>${i + 1}</span></div>`;
+    return `<button class="slot5" data-i="${i}" style="--rc:${rar(c.type).color}" aria-label="${CARDS[c.type].name} 빼기"><img src="${CARDS[c.type].img}" alt=""><i class="no">${i + 1}</i></button>`;
+  }).join('');
+  $('deck-grid').innerHTML = groups().map(g => {
+    const inDeck = g.list.filter(c => U.deck.includes(c.id)).length, left = g.list.length - inDeck;
+    return tileEl(g.type, left, left ? '' : ' out', inDeck ? `<i class="no">${inDeck}</i>` : '');
+  }).join('') || EMPTY;
   show('s-deck');
 }
+$('deck-slots').addEventListener('click', e => {
+  const b = e.target.closest('[data-i]'); if (!b) return;
+  U.deck.splice(+b.dataset.i, 1); persist(); deck();
+});
 $('deck-grid').addEventListener('click', e => {
-  const b = e.target.closest('[data-id]'); if (!b) return;
-  const id = +b.dataset.id, i = U.deck.indexOf(id);
-  if (i >= 0) U.deck.splice(i, 1);
-  else if (U.deck.length >= 5) return toast('출격 카드는 최대 5장이에요.');
-  else U.deck.push(id);
-  persist(); deck();
+  const b = e.target.closest('[data-t]'); if (!b) return;
+  if (U.deck.length >= 5) return toast('5칸이 다 찼어요. 위 칸을 눌러 빼고 넣으세요.');
+  const c = U.inv.find(x => x.type === b.dataset.t && !U.deck.includes(x.id));
+  if (!c) return toast('이 카드는 전부 출격 중이에요.');
+  U.deck.push(c.id); persist(); deck();
 });
 
 /* ── 뽑기 ── */

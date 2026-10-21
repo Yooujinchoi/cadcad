@@ -248,3 +248,22 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .patch h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;font:400 18px "Black Han Sans",sans-serif;color:var(--gold)}
 .patch h3 em{padding:2px 6px;font:700 10px Pretendard,sans-serif;font-style:normal;color:#10151a;background:var(--gold);border-radius:8px}
 .patch ul{margin:0;padding-left:18px;font-size:14px;line-height:1.6;color:var(--ink);word-break:keep-all}
+
+/* v23: 컬렉션·출격 화면 정리 (겹침 수정: 비율을 padding으로 고정) */
+.grid{grid-auto-rows:max-content;gap:14px 10px}
+.grid>*{min-width:0}
+.tile{display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:0;color:var(--ink);text-align:center;background:none;border:0}
+.tile .art{position:relative;display:block;padding-top:133.33%;overflow:hidden;background:#000;border:2px solid var(--rc,var(--gold));border-radius:10px}
+.tile .art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tile .cnt{position:absolute;right:4px;bottom:4px;padding:1px 7px;font:700 12px Pretendard,sans-serif;font-style:normal;color:#fff;background:rgba(0,0,0,.78);border-radius:10px}
+.tile .tn{overflow:hidden;font-size:12px;line-height:1.3;white-space:nowrap;text-overflow:ellipsis}
+.tile .tr{font-size:11px;font-weight:700;color:var(--rc)}
+.tile.sel .art{box-shadow:0 0 0 3px var(--red),0 0 14px var(--red)}
+.tile.out .art img{opacity:.3}
+.tile:active .art{transform:scale(.97)}
+.slots5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px}
+.slot5{position:relative;display:block;padding:0;padding-top:133.33%;overflow:hidden;background:#000;border:2px solid var(--rc,var(--gold));border-radius:8px}
+.slot5 img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slot5 .no{left:3px;top:3px;width:18px;height:18px;font-size:12px}
+.slot5.empty{background:rgba(0,0,0,.25);border:2px dashed #3a4c4c}
+.slot5.empty span{position:absolute;inset:0;display:grid;place-items:center;font:400 18px "Black Han Sans",sans-serif;color:var(--mute)}
