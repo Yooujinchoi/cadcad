@@ -287,11 +287,12 @@ $('deck-grid').addEventListener('click', e => {
 });
 
 /* ── 뽑기 ── */
-const POOL = [{ type: 'kimul', w: 84 }, { type: 'nature', w: 10 }, { type: 'yongsa', w: 5 }, { type: 'angry', w: 1 }]; // w = 확률(%) 합계 100
+const POOL = [{ type: 'kimul', w: 82 }, { type: 'nature', w: 10 }, { type: 'yongsa', w: 5 }, { type: 'ltake', w: 2 }, { type: 'angry', w: 1 }]; // w = 확률(%) 합계 100
 const pickCard = () => { let x = Math.random() * 100; for (const p of POOL) { if ((x -= p.w) < 0) return p.type; } return POOL[0].type; };
 function gacha() {
   pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal();
   $('g-rate').textContent = '확률 · ' + POOL.map(p => `${CARDS[p.type].name}(${rar(p.type).name}) ${p.w}%`).join(' / ');
+  $('g-tiers').innerHTML = '<em>낮음</em>' + Object.values(RARITY).sort((a, b) => a.rank - b.rank).map(r => `<span style="background:${r.color}">${r.name}</span>`).join('<i>›</i>') + '<em>높음</em>';
   show('s-gacha');
 }
 

@@ -6,13 +6,14 @@ const SHIELD_MS = 1200, SWAP_MS = 2500;
 const safePhoto = p => typeof p === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,60000}$/.test(p) ? p : '';
 const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="av ${cls}">${s ? `<img src="${s}" alt="">` : '🧑'}</span>`; };
 
-// 등급(낮음→높음): 김울급 < 버러지 < 레어 < 슈퍼레어 < 민준급
+// 등급(낮음→높음): 김울급 < 버러지 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급
 const RARITY = {
   kimul: { name: '김울급', color: '#9aa5a5', rank: 0 },
   worm: { name: '버러지', color: '#7bc47f', rank: 1 },
   rare: { name: '레어', color: '#5aa9ff', rank: 2 },
   sr: { name: '슈퍼레어', color: '#c07bff', rank: 3 },
-  minjun: { name: '민준급', color: '#ff9f3d', rank: 4 },
+  usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4 },
+  minjun: { name: '민준급', color: '#ff9f3d', rank: 5 },
 };
 // 스킬포인트: 평타 1회당 쌓이는 양(gain)은 카드마다 다름, 스킬은 cost 필요
 const CARDS = {
@@ -28,6 +29,9 @@ const CARDS = {
   nature: { name: '자연인 김승현', img: 'nature.jpg', rarity: 'rare', hp: 300,
     basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
     skill: { name: '정글카이팅', dmg: 60, cd: 800, cost: 80, hold: 450 } },
+  ltake: { name: 'L을 가져가는 김울', img: 'ltake.jpg', rarity: 'usr', hp: 1000,
+    basic: { name: '평타', dmg: 20, cd: 200, gain: 5 },
+    skill: { name: '애 가지고 튀기', dmg: 55, cd: 800, cost: 50, hold: 450 } },
 };
 // 튜토리얼 전용 평범한 김울(버프): 평타 7, 스킬포인트 +10. 컬렉션·뽑기·관리자 지급에는 안 나옴
 CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };

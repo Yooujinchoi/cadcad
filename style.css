@@ -230,3 +230,10 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .skill{gap:6px}
 .skill .atk{min-width:0}
 .skill .atk b{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* v16: 뽑기 화면 등급 안내, 긴 등급 이름표 */
+.tiers{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:5px;margin-top:8px;font-size:11px;color:var(--mute)}
+.tiers span{padding:2px 7px;font-weight:700;color:#10151a;border-radius:8px}
+.tiers i,.tiers em{font-style:normal}
+.rt{max-width:calc(100% - 30px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9.5px}
+.rgrid:not(.one) .rt{right:2px;top:2px;max-width:calc(100% - 4px);padding:1px 4px;font-size:8px}
