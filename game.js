@@ -8,12 +8,12 @@ const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="a
 
 // 등급(낮음→높음): 김울급 < 버러지 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급
 const RARITY = {
-  kimul: { name: '김울급', color: '#9aa5a5', rank: 0 },
-  worm: { name: '버러지', color: '#7bc47f', rank: 1 },
-  rare: { name: '레어', color: '#5aa9ff', rank: 2 },
-  sr: { name: '슈퍼레어', color: '#c07bff', rank: 3 },
-  usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4 },
-  minjun: { name: '민준급', color: '#ff9f3d', rank: 5 },
+  kimul: { name: '김울급', color: '#9aa5a5', rank: 0, refund: 50 },
+  worm: { name: '버러지', color: '#7bc47f', rank: 1, refund: 70 },
+  rare: { name: '레어', color: '#5aa9ff', rank: 2, refund: 150 },
+  sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300 },
+  usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800 },
+  minjun: { name: '민준급', color: '#ff9f3d', rank: 5, refund: 2000 },
 };
 // 스킬포인트: 평타 1회당 쌓이는 양(gain)은 카드마다 다름, 스킬은 cost 필요
 const CARDS = {
@@ -22,9 +22,9 @@ const CARDS = {
     skill: { name: '째려보기', dmg: 40, cd: 800, cost: 100, hold: 450 } },
   yongsa: { name: '용사 김울', img: 'yongsa.jpg', rarity: 'sr', hp: 700,
     basic: { name: '평타', dmg: 40, cd: 900, gain: 8 }, // 묵직한 평타: 40 데미지 · 0.9초마다
-    skill: { name: '울칼리버', dmg: 110, cd: 800, cost: 100, hold: 450 } },
-  angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1800,
-    basic: { name: '평타', dmg: 35, cd: 500, gain: 10 },
+    skill: { name: '울칼리버', dmg: 210, cd: 800, cost: 100, hold: 450 } },
+  angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1400,
+    basic: { name: '평타', dmg: 35, cd: 500, gain: 7 },
     skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 } },
   nature: { name: '자연인 김승현', img: 'nature.jpg', rarity: 'rare', hp: 300,
     basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
@@ -35,6 +35,9 @@ const CARDS = {
   soyul: { name: '평범한 소율', img: 'soyul.jpg', rarity: 'kimul', hp: 120,
     basic: { name: '평타', dmg: 6, cd: 500, gain: 5 },
     skill: { name: '멘탈공격', dmg: 40, cd: 800, cost: 100, hold: 450 } },
+  gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
+    basic: { name: '평타', dmg: 23, cd: 500, gain: 8 },
+    skill: { name: '꿈나라여행', dmg: 165, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
   // 버프 스킬: 데미지 대신 3초 동안 평타가 22 데미지 · 0.2초마다로 바뀜
   shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 400,
     basic: { name: '평타', dmg: 20, cd: 800, gain: 6.5 },
@@ -46,7 +49,7 @@ const rar = t => RARITY[CARDS[t].rarity];
 // 버프 스킬 효과 중에는 평타가 바뀌고, 스킬포인트는 쌓이지 않음 (무한 연속 사용 방지)
 const buffOn = c => c.buffUntil > performance.now();
 const basicOf = c => { const d = CARDS[c.type], b = d.skill.buff; return b && buffOn(c) ? { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 } : d.basic; };
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.dmg}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.dmg}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -285,6 +288,7 @@ function attack(kind) {
   const c = S.cards[S.cur], a = kind === 'basic' ? basicOf(c) : CARDS[c.type].skill, big = kind === 'skill';
   if (big) { if (c.en < a.cost) return; c.en -= a.cost; renderPlayer(); }
   if (big && a.buff) return startBuff(c, a);
+  if (big && a.heal) heal(c, a.heal);
   S.busy = true;
   card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
 
@@ -310,6 +314,14 @@ function attack(kind) {
     $('bot').classList.add('shielded'); setTimeout(() => $('bot').classList.remove('shielded'), SHIELD_MS);
   }
   fly(card, $('bot'), big ? 'orb eye' : 'orb', big ? 2.6 : 1.5, big ? 460 : 380, () => hit(a, big, c, blocked));
+}
+
+function heal(c, n) { // 체력 회복 (최대 체력까지)
+  const got = Math.min(n, CARDS[c.type].hp - c.hp);
+  if (got <= 0) return;
+  c.hp += got;
+  floatTxt($('active'), '+' + got, 'dmg me heal');
+  renderPlayer();
 }
 
 function startBuff(c, a) {

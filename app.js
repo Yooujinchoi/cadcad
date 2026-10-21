@@ -278,7 +278,7 @@ $('sel-del').onclick = () => {
 
 function detail(t) {
   const d = CARDS[t], own = U.inv.filter(c => c.type === t), inDeck = own.filter(c => U.deck.includes(c.id)).length;
-  panel(d.name, `등급 ${rar(t).name} · 보유 ${own.length}장${inDeck ? ` (출격 ${inDeck}장)` : ''}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)${d.skill.buff ? '\n※ 스킬 효과 중에는 스킬포인트가 쌓이지 않아요' : ''}`,
+  panel(d.name, `등급 ${rar(t).name} · 보유 ${own.length}장${inDeck ? ` (출격 ${inDeck}장)` : ''}\n폐기하면 장당 ${fmt(rar(t).refund || 0)} BP 환급\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)${d.skill.buff ? '\n※ 스킬 효과 중에는 스킬포인트가 쌓이지 않아요' : ''}`,
     '닫기', null, '카드 폐기', () => discardAsk(t), d.img);
 }
 function discardAsk(t) {
@@ -292,13 +292,14 @@ function discardAsk(t) {
   $('p-in').inputMode = 'numeric';
 }
 function confirmDiscard(list, after) {
-  const n = list.length, ids = new Set(list.map(c => c.id));
+  const n = list.length, ids = new Set(list.map(c => c.id)), bp = list.reduce((s, c) => s + (rar(c.type).refund || 0), 0);
   const high = list.filter(c => rar(c.type).rank >= 3).length, inDeck = list.filter(c => U.deck.includes(c.id)).length;
   const warn = [high && `슈퍼레어 이상 ${high}장`, inDeck && `출격 카드 ${inDeck}장`].filter(Boolean).join(', ');
-  panel('카드 폐기', `${n === 1 ? '정말 카드를' : `정말 카드 ${n}장을`} 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)${warn ? `\n⚠ ${warn} 포함` : ''}`, '취소', null, '폐기하기', () => {
+  panel('카드 폐기', `${n === 1 ? '정말 카드를' : `정말 카드 ${n}장을`} 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)${warn ? `\n⚠ ${warn} 포함` : ''}\n돌려받는 BP: ${fmt(bp)}`, '취소', null, '폐기하기', () => {
     U.inv = U.inv.filter(c => !ids.has(c.id)); U.deck = U.deck.filter(id => !ids.has(id));
     if (after) after();
-    persist(); coll(); toast(`${n}장을 폐기했어요.`);
+    if (!U.admin) U.bp += bp;
+    persist(); coll(); toast(`${n}장을 폐기하고 ${fmt(bp)} BP를 돌려받았어요.`);
   });
 }
 
