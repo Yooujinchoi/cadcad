@@ -106,7 +106,7 @@ function renderPlayer() {
   $('pspt').textContent = `스킬 ${c.en} / ${d.skill.cost}`;
   $('psp').classList.toggle('full', c.en >= d.skill.cost);
   $('bench').innerHTML = S.cards.map((x, i) => i === S.cur ? '' :
-    `<div class="mini${x.hp <= 0 ? ' dead' : ''}" data-i="${i}" style="--rc:${rar(x.type).color}" role="button" aria-label="카드 교체"><img src="${CARDS[x.type].img}" alt=""><span class="hp"><div style="width:${pct(x.hp, CARDS[x.type].hp)}"></div></span></div>`).join('');
+    `<div class="mini${x.hp <= 0 ? ' dead' : ''}" data-i="${i}" style="--rc:${rar(x.type).color}" role="button" aria-label="카드 교체"><img src="${CARDS[x.type].img}" alt=""><div class="hp"><div style="width:${pct(x.hp, CARDS[x.type].hp)}"></div></div></div>`).join('');
   if (S.cfg.sync) S.cfg.sync();
 }
 function renderShield() { $('shn').textContent = S.shields; $('shield').disabled = S.shields <= 0; }
@@ -144,7 +144,7 @@ function battle(cfg) {
   $('sk').hidden = $('psp').hidden = !cfg.skill;
   $('bsp').hidden = !cfg.atk;
   $('shield').parentElement.style.visibility = cfg.shield ? '' : 'hidden';
-  $('bench').parentElement.style.visibility = types.length > 1 ? '' : 'hidden';
+  $('bench').hidden = types.length < 2;
   cd_reset();
   $('bot').className = 'bot'; $('active').className = 'active';
   hint.className = 'hint'; say('');

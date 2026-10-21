@@ -268,3 +268,16 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .slot5.vacant{background:rgba(0,0,0,.25);border:2px dashed #3a4c4c}
 .slot5.vacant span{position:absolute;inset:0;display:grid;place-items:center;font:400 18px "Black Han Sans",sans-serif;color:var(--mute)}
 .tile .cnt{top:4px;bottom:auto} /* 수량 표시를 위로: 카드 아래 이름 글자를 가리지 않게 */
+
+/* v25: 전투 화면 — 작은 폰에서도 아래까지 다 보이게 (카드 크기를 화면 높이에 맞춤) */
+.enemy{min-height:0;gap:8px}
+.enemy.pvp #bot{width:min(44vw,180px,18vh);width:min(44vw,180px,18dvh)}
+.active{width:min(46vw,200px,20vh);width:min(46vw,200px,20dvh)}
+.hint{min-height:2.8em;margin:4px 0 6px;font-size:14px;line-height:1.4}
+.bench{display:flex;justify-content:center;gap:8px;margin-bottom:8px}
+.bench .mini{width:min(10vw,40px)}
+.side{padding-bottom:0}
+.skill{padding:6px 7px 16px;font-size:11px}
+.skill em{min-width:22px;height:22px;font-size:13px}
+.skill .atk:first-child{flex:none}
+#bench{flex-direction:row;justify-content:center;gap:8px}
