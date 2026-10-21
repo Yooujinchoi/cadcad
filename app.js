@@ -296,8 +296,8 @@ $('deck-grid').addEventListener('click', e => {
 });
 
 /* ── 뽑기 ── */
-// 등급별 뽑기 확률(%) — 냥코대전쟁 레어뽑기 참고, 울트라 슈퍼 레어 7 · 민준급 3으로 상향 (합계 100)
-const RATES = { kimul: 35, worm: 20, rare: 10, sr: 25, usr: 7, minjun: 3 };
+// 등급별 뽑기 확률(%) — 냥코대전쟁 레어뽑기 참고, 울트라 슈퍼 레어 7 · 민준급 1.5 (합계 100)
+const RATES = { kimul: 36.5, worm: 20, rare: 10, sr: 25, usr: 7, minjun: 1.5 };
 const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && CARDS[k].rarity === r);
 // 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
 function effRates() {
@@ -314,10 +314,9 @@ const pickCard = () => {
   for (r in eff) if ((x -= eff[r]) < 0) break;
   const p = poolOf(r); return p[Math.floor(Math.random() * p.length)];
 };
-const rateText = () => {
-  const eff = effRates(), empty = Object.keys(RATES).filter(r => RATES[r] && !poolOf(r).length).map(r => RARITY[r].name);
-  return '확률 · ' + Object.keys(eff).sort((a, b) => RARITY[a].rank - RARITY[b].rank).map(r => `${RARITY[r].name} ${+eff[r].toFixed(1)}% (${poolOf(r).map(k => CARDS[k].name).join(', ')})`).join(' / ')
-    + (empty.length ? ` · ${empty.join(', ')} 카드는 아직 없어서 아래 등급에 합산` : '');
+const rateText = () => { // 등급별 확률만 표시 (카드가 없는 등급은 아래 등급에 합산된 실제 확률)
+  const eff = effRates();
+  return '확률 · ' + Object.keys(eff).sort((a, b) => RARITY[a].rank - RARITY[b].rank).map(r => `${RARITY[r].name} ${+eff[r].toFixed(1)}%`).join(' / ');
 };
 function gacha() {
   pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal();
