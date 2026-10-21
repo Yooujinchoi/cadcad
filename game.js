@@ -30,8 +30,8 @@ const CARDS = {
     basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
     skill: { name: '정글카이팅', dmg: 60, cd: 800, cost: 80, hold: 450 } },
   ltake: { name: 'L을 가져가는 김울', img: 'ltake.jpg', rarity: 'usr', hp: 1000,
-    basic: { name: '평타', dmg: 20, cd: 200, gain: 5 },
-    skill: { name: '애 가지고 튀기', dmg: 55, cd: 800, cost: 50, hold: 450 } },
+    basic: { name: '평타', dmg: 12, cd: 350, gain: 5 },
+    skill: { name: '애 가지고 튀기', dmg: 140, cd: 800, cost: 50, hold: 450 } },
 };
 // 튜토리얼 전용 평범한 김울(버프): 평타 7, 스킬포인트 +10. 컬렉션·뽑기·관리자 지급에는 안 나옴
 CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };
