@@ -42,6 +42,9 @@ const CARDS = {
   sangyeop: { name: '평범한 상엽', img: 'sangyeop.jpg', rarity: 'kimul', hp: 110, // 평범한 정훈과 능력치 같음
     basic: { name: '평타', dmg: 5.5, cd: 500, gain: 5 },
     skill: { name: '김울급 행동', dmg: 40, cd: 800, cost: 100, hold: 450 } },
+  handsome: { name: '잘생긴척하는김울', img: 'handsome.jpg', rarity: 'kimul', hp: 1300,
+    basic: { name: '평타', dmg: 17, cd: 150, gain: 5 },
+    skill: { name: '머니머니머니', dmg: 70, cd: 800, cost: 100, hold: 450, vamp: { ms: 7000 } } }, // 70 데미지 + 7초 동안 평타 피흡 (잃은 체력 비율만큼)
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
     basic: { name: '평타', dmg: 22, cd: 500, gain: 8 }, // 한방딜: 스킬 위주
     skill: { name: '꿈나라여행', dmg: 280, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
@@ -99,7 +102,7 @@ const basicOf = c => {
   return rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -167,7 +170,7 @@ function renderPlayer() {
   const c = S.cards[S.cur], d = CARDS[c.type];
   card.style.setProperty('--rc', rar(c.type).color);
   if (!$('cimg').src.endsWith(d.img)) $('cimg').src = d.img;
-  $('n1').textContent = d.basic.name; $('d1').textContent = basicOf(c).dmg; $('active').classList.toggle('buffed', buffOn(c));
+  $('n1').textContent = d.basic.name; $('d1').textContent = basicOf(c).dmg; $('active').classList.toggle('buffed', buffOn(c)); $('active').classList.toggle('vamp', vampOn(c));
   const rg = rageOn(c); $('active').classList.toggle('rage', rg);
   if (rg && !c.raged && S.ready) say('체력이 절반 이하! 공격 속도가 빨라졌어요!');
   c.raged = rg;
@@ -361,6 +364,7 @@ function attack(kind) {
   if (big && a.buff) return startBuff(c, a);
   if (big && a.heal) heal(c, a.heal);
   if (big && a.barrier) grantBarrier(c, a.barrier);
+  if (big && a.vamp) startVamp(c, a);
   S.busy = true;
   card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
 
@@ -373,6 +377,7 @@ function attack(kind) {
     S.cfg.pvp.send(a.poison ? 'poison' : big ? 'skill' : 'basic', a.dmg, a.poison ? a.poison.sec : (a.drain || 0));
     if (a.steal) heal(c, a.dmg);
     if (!big && a.lifeHit) heal(c, a.lifeHit);
+    if (!big && vampOn(c)) heal(c, vampAmt(c, a.dmg));
     if (!big && S.cfg.skill) {
       const cost = CARDS[c.type].skill.cost, was = c.en;
       c.en = Math.min(cost, c.en + a.gain);
@@ -453,6 +458,17 @@ function lastStand(c, ls) { // 최후의 일격: 체력이 일정 이하로 떨�
   fly(card, $('bot'), 'orb eye', 3.2, 520, () => hit({ name: ls.name, dmg: ls.dmg }, true, c, false));
 }
 
+// 피흡(머니머니머니): 효과 중 평타 데미지 × 잃은 체력 비율만큼 회복 (체력이 적을수록 많이)
+const vampOn = c => c.vampUntil > performance.now();
+const vampAmt = (c, dmg) => { const max = CARDS[c.type].hp; return Math.round(dmg * Math.max(0, max - c.hp) / max); };
+function startVamp(c, a) {
+  const t = S.tok;
+  c.vampUntil = performance.now() + a.vamp.ms;
+  say(`${a.name}! ${a.vamp.ms / 1000}초 동안 평타로 잃은 체력 비율만큼 회복해요!`);
+  renderPlayer();
+  setTimeout(() => { if (S.tok === t) renderPlayer(); }, a.vamp.ms + 30);
+}
+
 function grantBarrier(c, b) { // 보호막(러브버그): 남아 있으면 안 생김, 다 사라진 뒤에만 새로 (300 → 280 → 260 …)
   if (c.barrier > 0) return say(`보호막이 ${c.barrier} 남아 있어서 새로 생기지 않았어요.`);
   if (c.barrierNext === undefined) c.barrierNext = b.amt;
@@ -486,6 +502,7 @@ function hit(a, big, c, blocked) {
   if (big && a.drain) drainBot(a.drain);
   if (big && a.steal) heal(c, a.dmg);
   if (!big && a.lifeHit) heal(c, a.lifeHit);
+  if (!big && vampOn(c)) heal(c, vampAmt(c, a.dmg));
   navigator.vibrate?.(big ? [30, 30, 50] : 25);
   restart(bot, 'hurt'); setTimeout(() => bot.classList.remove('hurt'), 300);
   floatTxt($('enemy'), '-' + a.dmg, big ? 'dmg crit' : 'dmg');
