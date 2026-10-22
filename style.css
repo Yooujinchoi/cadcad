@@ -288,3 +288,8 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .dmg.buff{font-size:28px;color:#7cff6b}
 .dmg.heal{color:#7cff6b} /* v29: 체력 회복 숫자 */
 .dmg.sp,.dmg.me.sp{margin-left:-55px;font-size:18px;color:#b58bff} /* v31: 스킬포인트 깎임 표시 */
+
+/* v35: 레벨 — 뽑기 결과 라벨 */
+.rc .rl{position:absolute;left:0;right:0;bottom:0;padding:2px 0;font:700 10px Pretendard,sans-serif;color:#fff;text-align:center;background:rgba(0,0,0,.72)}
+.rc .rl.new{color:#10151a;background:var(--gold)}
+.rgrid.one .rl{padding:6px 0;font-size:16px}

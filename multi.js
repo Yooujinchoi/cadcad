@@ -111,7 +111,7 @@ function startPvp(ps) {
       restart($('bot'), 'hurt'); setTimeout(() => $('bot').classList.remove('hurt'), 300);
     }
     if ((v.blk || 0) > (b.blk || 0)) floatTxt($('enemy'), '방어!', 'dmg blk');
-    if (CARDS[v.ty] && v.ty !== b.ty) $('bot').style.backgroundImage = `url(${CARDS[v.ty].img})`;
+    if (v.ty && v.ty !== b.ty) $('bot').style.backgroundImage = `url(${CARDS[ensureCard(v.ty)].img})`;
     Object.assign(b, { cost: v.cost || 100, ty: v.ty, ci: v.ci, hp: v.hp, max: v.max, en: v.en, left: v.left, blk: v.blk || 0 });
     $('bname').textContent = `${foe.name} (남은 카드 ${v.left})`;
     renderBot();

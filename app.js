@@ -81,11 +81,28 @@ async function loadUser() {
   const u = auth.currentUser, snap = await db.collection('users').doc(u.uid).get();
   U = snap.exists ? snap.data() : { id: u.email.split('@')[0], name: '', tut: false, bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
   U.admin = u.email === ADMIN_EMAIL;
+  const mig = migrate();
   if (U.admin) {
     U.tut = true;
-    for (const t in CARDS) if (!CARDS[t].tutorial) while (U.inv.filter(c => c.type === t).length < 5) U.inv.push({ id: U.seq++, type: t });
+    for (const t in CARDS) if (!CARDS[t].tutorial && !CARDS[t].variant && !U.inv.some(c => c.type === t)) { U.inv.push({ id: U.seq++, type: t }); U.lv[t] = 1; }
   }
-  if (!snap.exists || U.admin) await persist();
+  if (!snap.exists || U.admin || mig) await persist();
+  if (mig && mig.n) setTimeout(() => panel('레벨 시스템 도입', `같은 카드 ${mig.n}장이 레벨업으로 바뀌었어요.${mig.bp ? `\n최대 레벨을 넘은 카드는 ${fmt(mig.bp)} BP로 돌려받았어요.` : ''}`, '확인'), 800);
+}
+function migrate() { // 레벨 시스템 도입 시 한 번: 중복 카드 → 레벨, 최대 레벨 초과분 → BP
+  if (U.lvv) return null;
+  U.lv = U.lv || {};
+  const first = {}, keep = [], byId = {}; let n = 0, bp = 0;
+  for (const c of U.inv) {
+    byId[c.id] = c;
+    if (!CARDS[c.type] || CARDS[c.type].tutorial || CARDS[c.type].variant) continue;
+    if (!first[c.type]) { first[c.type] = c; keep.push(c); U.lv[c.type] = U.lv[c.type] || 1; continue; }
+    n++;
+    if (U.lv[c.type] < LV_MAX) U.lv[c.type]++; else bp += rar(c.type).refund || 0;
+  }
+  U.deck = [...new Set(U.deck.map(id => byId[id] && first[byId[id].type] && first[byId[id].type].id).filter(Boolean))];
+  U.inv = keep; if (!U.admin) U.bp += bp; U.lvv = 1;
+  return { n, bp };
 }
 
 $('auth-form').addEventListener('submit', async e => {
@@ -127,7 +144,7 @@ $('name-form').addEventListener('submit', e => {
 
 function tutorialDone() {
   U.tut = true; U.tickets += 10; U.bp += 10000;
-  for (let k = 0; k < 3; k++) U.inv.push({ id: U.seq++, type: 'kimul' });
+  for (let k = 0; k < 3; k++) grant('kimul'); // 중복은 레벨업 → 평범한 김울 Lv.3
   persist();
   panel('튜토리얼 클리어를 축하합니다', '획득 보상\n10회 뽑기권 , 평범한 김울 카드 3장 , 10,000 BP', '메뉴화면으로', menu);
 }
@@ -215,10 +232,10 @@ function shrink(file) {
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) ({ menu, coll, deck, gacha })[b.dataset.go](); });
 
 /* ── AI 대전 ── */
-function myDeck() {
-  let types = U.deck.map(id => U.inv.find(c => c.id === id)).filter(Boolean).map(c => c.type);
-  if (!types.length) types = U.inv.slice(0, 5).map(c => c.type);
-  return types;
+function myDeck() { // 출격 카드(같은 카드는 한 장) → 레벨이 반영된 카드
+  let list = U.deck.map(id => U.inv.find(c => c.id === id)).filter(Boolean);
+  if (!list.length) list = U.inv.slice().sort(byRank);
+  return [...new Set(list.map(c => c.type))].slice(0, 5).map(t => lvKey(t, lvOf(t)));
 }
 function diffs() {
   $('diff-list').innerHTML = DIFFS.map((d, i) => `<button class="mbtn big d" data-i="${i}"><b>${d.name}</b><small>${d.train ? d.info : `${d.info} · 체력 ${fmt(d.bot)} · 평타 ${d.p.dmg} · 스킬 ${d.p.sdmg} · 스킬포인트 ${d.p.cost || 100} · 승리 +${fmt(d.bp)} BP`}</small></button>`).join('');
@@ -247,17 +264,17 @@ const groups = () => {
 };
 const tileEl = (t, count, extra = '', badge = '') => {
   const d = CARDS[t], r = rar(t);
-  return `<button class="tile${extra}" data-t="${t}" style="--rc:${r.color}"><span class="art"><img src="${d.img}" alt="${d.name}">${badge}<i class="cnt">×${count}</i></span><b class="tn">${d.name}</b><span class="tr">${r.name}</span></button>`;
+  return `<button class="tile${extra}" data-t="${t}" style="--rc:${r.color}"><span class="art"><img src="${d.img}" alt="${d.name}">${badge}<i class="cnt">${count}</i></span><b class="tn">${d.name}</b><span class="tr">${r.name}</span></button>`;
 };
 
 function coll() {
   const sel = collSel, gs = groups(), n = U.inv.length;
   const picked = sel ? U.inv.filter(c => sel.has(c.type)).length : 0;
-  $('coll-cnt').textContent = sel ? `${picked}장 선택` : `${gs.length}종 · ${n}장`;
+  $('coll-cnt').textContent = sel ? `${picked}장 선택` : `${gs.length}종`;
   $('coll-sel').textContent = sel ? '취소' : '선택 폐기';
   $('coll-bar').hidden = !sel;
   if (sel) { $('sel-del').textContent = `폐기 (${picked})`; $('sel-all').textContent = gs.length && sel.size === gs.length ? '선택 해제' : '전체 선택'; }
-  $('coll-grid').innerHTML = gs.map(g => { const on = sel && sel.has(g.type); return tileEl(g.type, g.list.length, on ? ' sel' : '', on ? '<i class="no">✓</i>' : ''); }).join('') || EMPTY;
+  $('coll-grid').innerHTML = gs.map(g => { const on = sel && sel.has(g.type); return tileEl(g.type, `Lv.${lvOf(g.type)}`, on ? ' sel' : '', on ? '<i class="no">✓</i>' : ''); }).join('') || EMPTY;
   show('s-coll');
 }
 const redraw = () => { const g = $('coll-grid'), y = g.scrollTop; coll(); g.scrollTop = y; };
@@ -276,10 +293,30 @@ $('sel-del').onclick = () => {
   confirmDiscard(list, () => { collSel = null; });
 };
 
+// ── 레벨 ──
+const lvOf = t => (U.lv && U.lv[t]) || 1;
+function grant(t) { // 카드 획득: 처음이면 새 카드, 이미 있으면 레벨업, 최대 레벨이면 BP
+  U.lv = U.lv || {};
+  if (!U.inv.some(c => c.type === t)) { U.inv.push({ id: U.seq++, type: t }); U.lv[t] = 1; return { type: t, res: 'new', lv: 1 }; }
+  if (lvOf(t) < LV_MAX) { U.lv[t] = lvOf(t) + 1; return { type: t, res: 'up', lv: U.lv[t] }; }
+  const bp = rar(t).refund || 0; if (!U.admin) U.bp += bp;
+  return { type: t, res: 'max', lv: LV_MAX, bp };
+}
+function levelUp(t) {
+  const lv = lvOf(t), cost = rar(t).up * lv;
+  if (lv >= LV_MAX) return toast('이미 최대 레벨이에요.');
+  if (!U.admin && U.bp < cost) return toast(`BP가 부족해요. (${fmt(cost)} BP 필요 · 보유 ${fmt(U.bp)} BP)`);
+  if (!U.admin) U.bp -= cost;
+  U.lv[t] = lv + 1; persist(); coll(); detail(t);
+  toast(`${CARDS[t].name} Lv.${lv + 1} 달성!`);
+}
 function detail(t) {
-  const d = CARDS[t], own = U.inv.filter(c => c.type === t), inDeck = own.filter(c => U.deck.includes(c.id)).length;
-  panel(d.name, `등급 ${rar(t).name} · 보유 ${own.length}장${inDeck ? ` (출격 ${inDeck}장)` : ''}\n폐기하면 장당 ${fmt(rar(t).refund || 0)} BP 환급\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)${d.skill.buff ? '\n※ 스킬 효과 중에는 스킬포인트가 쌓이지 않아요' : ''}`,
-    '닫기', null, '카드 폐기', () => discardAsk(t), d.img);
+  const lv = lvOf(t), d = CARDS[lvKey(t, lv)], inDeck = U.inv.some(c => c.type === t && U.deck.includes(c.id));
+  const nx = lv < LV_MAX ? CARDS[lvKey(t, lv + 1)] : null, cost = rar(t).up * lv;
+  const txt = `등급 ${rar(t).name} · Lv.${lv} / ${LV_MAX}${inDeck ? ' · 출격 중' : ''}\n체력 ${d.hp}\n${d.basic.name}: 데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다 (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)${d.skill.buff ? '\n※ 스킬 효과 중에는 스킬포인트가 쌓이지 않아요' : ''}`
+    + (nx ? `\n\n다음 Lv.${lv + 1}: 체력 ${nx.hp} · 평타 ${nx.basic.dmg}${nx.skill.dmg ? ` · 스킬 ${nx.skill.dmg}` : ''}\n같은 카드를 뽑으면 무료로 레벨업돼요.` : '\n\n최대 레벨이에요! 같은 카드를 뽑으면 BP로 바뀌어요.');
+  if (nx) panel(d.name, txt, `레벨업 · ${U.admin ? '무료' : fmt(cost) + ' BP'}`, () => levelUp(t), '닫기', null, d.img);
+  else panel(d.name, txt, '닫기', null, null, null, d.img);
 }
 function discardAsk(t) {
   const own = U.inv.filter(c => c.type === t);
@@ -292,11 +329,12 @@ function discardAsk(t) {
   $('p-in').inputMode = 'numeric';
 }
 function confirmDiscard(list, after) {
-  const n = list.length, ids = new Set(list.map(c => c.id)), bp = list.reduce((s, c) => s + (rar(c.type).refund || 0), 0);
+  const n = list.length, ids = new Set(list.map(c => c.id)), bp = list.reduce((s, c) => s + (rar(c.type).refund || 0) * lvOf(c.type), 0); // 환급 = 등급 환급 × 레벨
   const high = list.filter(c => rar(c.type).rank >= 3).length, inDeck = list.filter(c => U.deck.includes(c.id)).length;
   const warn = [high && `슈퍼레어 이상 ${high}장`, inDeck && `출격 카드 ${inDeck}장`].filter(Boolean).join(', ');
   panel('카드 폐기', `${n === 1 ? '정말 카드를' : `정말 카드 ${n}장을`} 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)${warn ? `\n⚠ ${warn} 포함` : ''}\n돌려받는 BP: ${fmt(bp)}`, '취소', null, '폐기하기', () => {
     U.inv = U.inv.filter(c => !ids.has(c.id)); U.deck = U.deck.filter(id => !ids.has(id));
+    list.forEach(c => { if (U.lv) delete U.lv[c.type]; });
     if (after) after();
     if (!U.admin) U.bp += bp;
     persist(); coll(); toast(`${n}장을 폐기하고 ${fmt(bp)} BP를 돌려받았어요.`);
@@ -305,7 +343,7 @@ function confirmDiscard(list, after) {
 
 // 출격 카드: 위 5칸 = 출격 순서, 아래 = 보유 카드(남은 수량)
 function deck() {
-  const used = U.deck.map(id => U.inv.find(c => c.id === id)).filter(Boolean);
+  const seen = new Set(), used = U.deck.map(id => U.inv.find(c => c.id === id)).filter(c => c && !seen.has(c.type) && seen.add(c.type));
   U.deck = used.map(c => c.id);
   $('deck-cnt').textContent = `${used.length}/5`;
   $('deck-slots').innerHTML = [0, 1, 2, 3, 4].map(i => {
@@ -315,7 +353,8 @@ function deck() {
   }).join('');
   $('deck-grid').innerHTML = groups().map(g => {
     const inDeck = g.list.filter(c => U.deck.includes(c.id)).length, left = g.list.length - inDeck;
-    return tileEl(g.type, left, left ? '' : ' out', inDeck ? `<i class="no">${inDeck}</i>` : '');
+    const pos = U.deck.indexOf(g.list[0].id);
+    return tileEl(g.type, `Lv.${lvOf(g.type)}`, pos >= 0 ? ' out' : '', pos >= 0 ? `<i class="no">${pos + 1}</i>` : '');
   }).join('') || EMPTY;
   show('s-deck');
 }
@@ -326,15 +365,16 @@ $('deck-slots').addEventListener('click', e => {
 $('deck-grid').addEventListener('click', e => {
   const b = e.target.closest('[data-t]'); if (!b) return;
   if (U.deck.length >= 5) return toast('5칸이 다 찼어요. 위 칸을 눌러 빼고 넣으세요.');
-  const c = U.inv.find(x => x.type === b.dataset.t && !U.deck.includes(x.id));
-  if (!c) return toast('이 카드는 전부 출격 중이에요.');
+  const c = U.inv.find(x => x.type === b.dataset.t);
+  if (!c) return;
+  if (U.deck.includes(c.id)) return toast('이미 출격 중이에요. 같은 카드는 한 장만 출격할 수 있어요.');
   U.deck.push(c.id); persist(); deck();
 });
 
 /* ── 뽑기 ── */
 // 등급별 뽑기 확률(%) — 냥코대전쟁 레어뽑기 참고, 울트라 슈퍼 레어 7 · 민준급 1.5 (합계 100)
 const RATES = { kimul: 36.5, worm: 20, rare: 10, sr: 25, usr: 7, minjun: 1.5 };
-const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && CARDS[k].rarity === r);
+const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && CARDS[k].rarity === r);
 // 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
 function effRates() {
   const eff = {}; let carry = 0, last = null;
@@ -367,8 +407,8 @@ function draw(n) {
     if (U.tickets < n) return panel('뽑기권이 부족해요', `${n}회 뽑기에는 뽑기권 ${n}장이 필요해요. (보유 ${U.tickets}장)\n상점에서 뽑기권을 살 수 있어요.`, '상점으로', shop, '닫기');
     U.tickets -= n;
   }
-  const got = Array.from({ length: n }, () => ({ id: U.seq++, type: pickCard() }));
-  U.inv.push(...got); persist();
+  const got = Array.from({ length: n }, () => grant(pickCard())); // 새 카드 / 중복은 레벨업 / 최대 레벨이면 BP
+  persist();
   pulling = true; $('g-wal').textContent = wal();
   $('pack').className = 'pack shake';
   setTimeout(() => { $('pack').className = 'pack open'; navigator.vibrate?.(40); setTimeout(() => results(got), 450); }, 850);
@@ -376,7 +416,7 @@ function draw(n) {
 function results(got) {
   const g = $('rgrid');
   g.className = got.length === 1 ? 'rgrid one' : 'rgrid';
-  g.innerHTML = got.map((c, i) => { const r = rar(c.type); return `<div class="rc" style="--rc:${r.color};animation-delay:${i * .12}s"><img src="${CARDS[c.type].img}" alt="${CARDS[c.type].name}"><i class="rt" style="background:${r.color}">${r.name}</i></div>`; }).join('');
+  g.innerHTML = got.map((c, i) => { const r = rar(c.type), lab = c.res === 'new' ? 'NEW' : c.res === 'up' ? `Lv.${c.lv}↑` : `+${fmt(c.bp)} BP`; return `<div class="rc" style="--rc:${r.color};animation-delay:${i * .12}s"><img src="${CARDS[c.type].img}" alt="${CARDS[c.type].name}"><i class="rt" style="background:${r.color}">${r.name}</i><b class="rl${c.res === 'new' ? ' new' : ''}">${lab}</b></div>`; }).join('');
   $('res').hidden = false;
 }
 $('g1').onclick = () => draw(1);

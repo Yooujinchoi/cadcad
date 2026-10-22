@@ -8,12 +8,12 @@ const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="a
 
 // 등급(낮음→높음): 김울급 < 버러지 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급
 const RARITY = {
-  kimul: { name: '김울급', color: '#9aa5a5', rank: 0, refund: 50 },
-  worm: { name: '버러지', color: '#7bc47f', rank: 1, refund: 70 },
-  rare: { name: '레어', color: '#5aa9ff', rank: 2, refund: 150 },
-  sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300 },
-  usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800 },
-  minjun: { name: '민준급', color: '#ff9f3d', rank: 5, refund: 2000 },
+  kimul: { name: '김울급', color: '#9aa5a5', rank: 0, refund: 50, up: 100 },
+  worm: { name: '버러지', color: '#7bc47f', rank: 1, refund: 70, up: 150 },
+  rare: { name: '레어', color: '#5aa9ff', rank: 2, refund: 150, up: 300 },
+  sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300, up: 600 },
+  usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800, up: 1200 },
+  minjun: { name: '민준급', color: '#ff9f3d', rank: 5, refund: 2000, up: 2500 },
 };
 // 스킬포인트: 평타 1회당 쌓이는 양(gain)은 카드마다 다름, 스킬은 cost 필요
 const CARDS = {
@@ -49,6 +49,24 @@ const CARDS = {
 // 튜토리얼 전용 평범한 김울(버프): 평타 7, 스킬포인트 +10. 컬렉션·뽑기·관리자 지급에는 안 나옴
 CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };
 const rar = t => RARITY[CARDS[t].rarity];
+
+// ── 레벨: 같은 카드는 한 장만 보유하고, 중복은 레벨업. 레벨당 체력·평타·스킬 +5% (Lv.10 = 1.45배)
+//    → 최대 레벨이어도 한 등급 위 카드의 Lv.1을 넘지 않도록 맞춤. 레벨업 비용 = 등급별 up × 현재 레벨 (BP)
+const LV_MAX = 10, LV_STEP = 0.05;
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 만들어 둠 (상대가 보낸 값도 안전하게 처리)
+  key = String(key || 'kimul');
+  if (own(CARDS, key)) return key;
+  const [t, l] = key.split('@'), b = own(CARDS, t) && !CARDS[t].variant ? CARDS[t] : null;
+  if (!b || l === undefined) return 'kimul';
+  const lv = Math.min(LV_MAX, Math.max(1, Math.floor(+l) || 1)), m = 1 + LV_STEP * (lv - 1), r = x => Math.round(x * m);
+  const s = { ...b.skill, dmg: r(b.skill.dmg) };
+  if (b.skill.heal) s.heal = r(b.skill.heal);
+  if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
+  CARDS[key] = { ...b, variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg) }, skill: s };
+  return key;
+}
+const lvKey = (t, lv) => lv > 1 ? ensureCard(`${t}@${lv}`) : t;
 // 버프 스킬 효과 중에는 평타가 바뀌고, 스킬포인트는 쌓이지 않음 (무한 연속 사용 방지)
 const buffOn = c => c.buffUntil > performance.now();
 const basicOf = c => { const d = CARDS[c.type], b = d.skill.buff; return b && buffOn(c) ? { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 } : d.basic; };
@@ -150,7 +168,7 @@ function fly(from, to, cls, scale, dur, cb) {
 /* ── 전투 시작 ── */
 function battle(cfg) {
   S.tok++;
-  const types = cfg.deck || ['kimul'];
+  const types = (cfg.deck || ['kimul']).map(ensureCard);
   Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0, myBlk: 0, dmgTotal: 0, dmgStart: 0,
     bot: { hp: cfg.bot, max: cfg.bot, en: 0, sh: 3, cost: cfg.p.cost || 100 },
     cards: types.map(t => ({ type: t, hp: CARDS[t].hp, en: 0 })) });
@@ -158,7 +176,7 @@ function battle(cfg) {
   $('stg').textContent = cfg.tag;
   $('bname').textContent = cfg.botName;
   $('enemy').classList.toggle('pvp', !!cfg.foe); // 멀티: 상대 카드 + 상대 프로필 배치
-  $('bot').style.backgroundImage = cfg.foe ? `url(${(CARDS[cfg.foe.deck[0]] || CARDS.kimul).img})` : '';
+  $('bot').style.backgroundImage = cfg.foe ? `url(${CARDS[ensureCard(cfg.foe.deck[0])].img})` : '';
   $('bav').hidden = !cfg.foe;
   if (cfg.foe) $('bav').innerHTML = avHtml(cfg.foe.photo, 'lg');
   $('quit').hidden = !cfg.quit;
