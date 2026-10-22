@@ -50,6 +50,9 @@ const CARDS = {
   furry: { name: '퍼리민준', img: 'furry.jpg', rarity: 'sr', hp: 500,
     basic: { name: '평타', dmg: 19, cd: 500, gain: 6.5, lifeHit: 4, rage: { at: 0.5, cd: 350 } }, // 때릴 때마다 체력 +4, 체력 50% 이하면 0.35초마다
     skill: { name: '물어 뜯기', dmg: 140, cd: 800, cost: 80, hold: 450, heal: 60 } },
+  lovebug: { name: '러브버그', img: 'lovebug.jpg', rarity: 'sr', hp: 1100,
+    basic: { name: '평타', dmg: 15, cd: 500, gain: 8 },
+    skill: { name: '커플공격', dmg: 150, cd: 800, cost: 100, hold: 450, barrier: { amt: 300, step: 20 } } }, // 보호막: 다 사라진 뒤에만 새로 생기고, 생길 때마다 20씩 줄어듦
   eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1800,
     basic: { name: '평타', dmg: 15, cd: 700, gain: 8 },
     skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 45, range: [30, 60], steal: true, cd: 800, cost: 100, hold: 450 } }, // 30~60 랜덤 데미지, 준 만큼 체력 흡수
@@ -76,6 +79,7 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   if (b.skill.heal) s.heal = r(b.skill.heal);
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
   if (b.skill.range) s.range = b.skill.range.map(r);
+  if (b.skill.barrier) s.barrier = { ...b.skill.barrier, amt: r(b.skill.barrier.amt) };
   CARDS[key] = { ...b, variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg), ...(b.basic.lifeHit ? { lifeHit: r(b.basic.lifeHit) } : {}) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
   return key;
 }
@@ -90,7 +94,7 @@ const basicOf = c => {
   return rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생기고, 생길 때마다 ${d.skill.barrier.step}씩 줄어요)` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -142,13 +146,14 @@ function renderBot() {
   const b = S.bot;
   if (S.cfg && S.cfg.dummy) { // 연습용 훈련봇: 체력 무한, 누적·초당 데미지 표시
     const sec = S.dmgStart ? (performance.now() - S.dmgStart) / 1000 : 0;
-    $('hpf').style.width = '100%';
+    $('hpf').style.width = '100%'; $('hps').style.width = '0';
     $('hpt').textContent = `∞ · 누적 데미지 ${S.dmgTotal.toLocaleString('en-US')}`;
     $('bname').textContent = `훈련봇 · 초당 데미지 ${sec >= 1 ? (S.dmgTotal / sec).toFixed(1) : '-'}`;
     return;
   }
-  $('hpf').style.width = pct(b.hp, b.max);
-  $('hpt').textContent = `${b.hp} / ${b.max}`;
+  const bar = b.bar || 0, tot = Math.max(b.max, b.hp + bar); // 상대 보호막(멀티)
+  $('hpf').style.width = pct(b.hp, tot); $('hps').style.left = pct(b.hp, tot); $('hps').style.width = pct(bar, tot);
+  $('hpt').textContent = `${b.hp} / ${b.max}${bar ? ` (+${bar})` : ''}`;
   $('bspf').style.width = pct(b.en, b.cost);
   $('bspt').textContent = `스킬 ${b.en} / ${b.cost}`;
   $('bsp').classList.toggle('full', b.en >= b.cost);
@@ -165,8 +170,9 @@ function renderPlayer() {
   const s2 = d.skill2, b2 = $('sk2btn'); // 두 번째 스킬 버튼 (개씹빡친김울)
   b2.hidden = !s2 || !S.cfg.skill;
   if (s2) { b2.classList.toggle('ready', c.en >= s2.cost); $('sk2c').textContent = s2.cost; }
-  $('chf').style.width = pct(c.hp, d.hp);
-  $('cht').textContent = `HP ${c.hp} / ${d.hp}`;
+  const bar = c.barrier || 0, tot = Math.max(d.hp, c.hp + bar);
+  $('chf').style.width = pct(c.hp, tot); $('chs').style.left = pct(c.hp, tot); $('chs').style.width = pct(bar, tot);
+  $('cht').textContent = `HP ${c.hp} / ${d.hp}${bar ? ` (+${bar})` : ''}`;
   $('pspf').style.width = c.en + '%';
   $('pspt').textContent = `스킬 ${c.en} / ${d.skill.cost}`;
   $('psp').classList.toggle('full', c.en >= d.skill.cost);
@@ -277,10 +283,12 @@ function botAct() {
 function hurtPlayer(d, big) {
   if (!S.ready) return;
   const c = S.cards[S.cur];
-  c.hp = Math.max(0, c.hp - d);
+  let left = d;
+  if (c.barrier > 0) { const ab = Math.min(c.barrier, left); c.barrier -= ab; left -= ab; } // 보호막이 먼저 막음
+  c.hp = Math.max(0, c.hp - left);
   restart($('active'), 'hurt');
   navigator.vibrate?.(big ? [40, 30, 60] : 15);
-  floatTxt($('active'), '-' + d, big ? 'dmg crit me' : 'dmg me');
+  floatTxt($('active'), '-' + d, left ? (big ? 'dmg crit me' : 'dmg me') : 'dmg me barrier');
   if (c.hp <= 0) {
     const next = S.cards.findIndex(x => x.hp > 0);
     if (next < 0) { renderPlayer(); if (S.cfg.dead) S.cfg.dead(); return end(false); }
@@ -345,6 +353,7 @@ function attack(kind) {
   if (a.range) a = { ...a, dmg: a.range[0] + Math.floor(Math.random() * (a.range[1] - a.range[0] + 1)) };
   if (big && a.buff) return startBuff(c, a);
   if (big && a.heal) heal(c, a.heal);
+  if (big && a.barrier) grantBarrier(c, a.barrier);
   S.busy = true;
   card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
 
@@ -427,6 +436,16 @@ $('sk2btn').addEventListener('click', () => {
   if (c.en < s2.cost) return say(`${s2.name}: 스킬포인트 ${s2.cost} 이상이면 쓸 수 있어요. (쓰면 스킬포인트 전부 소모)`);
   attack('skill2');
 });
+
+function grantBarrier(c, b) { // 보호막(러브버그): 남아 있으면 안 생김, 다 사라진 뒤에만 새로 (300 → 280 → 260 …)
+  if (c.barrier > 0) return say(`보호막이 ${c.barrier} 남아 있어서 새로 생기지 않았어요.`);
+  if (c.barrierNext === undefined) c.barrierNext = b.amt;
+  const amt = Math.max(0, c.barrierNext);
+  if (!amt) return say('더 이상 보호막이 생기지 않아요.');
+  c.barrier = amt; c.barrierNext = amt - b.step;
+  floatTxt($('active'), `보호막 +${amt}`, 'dmg me barrier');
+  renderPlayer();
+}
 
 function startBuff(c, a) {
   const t = S.tok;

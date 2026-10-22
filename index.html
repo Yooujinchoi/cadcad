@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=42">
+<link rel="stylesheet" href="style.css?v=45">
 </head>
 <body>
 <main id="app">
@@ -115,7 +115,7 @@
     <div class="enemy" id="enemy">
       <div class="bot" id="bot"><div class="face"><i></i><i></i></div><u></u><div id="bav" hidden></div></div>
       <div class="nm" id="bname"></div>
-      <div class="hp"><div id="hpf"></div><span id="hpt"></span></div>
+      <div class="hp"><div id="hpf"></div><div class="shbar" id="hps"></div><span id="hpt"></span></div>
       <div class="sp" id="bsp"><div id="bspf"></div><span id="bspt"></span></div>
     </div>
     <p class="hint" id="hint"></p>
@@ -128,7 +128,7 @@
           <span class="skill"><span class="atk"><b id="n1"></b><em id="d1"></em></span><span class="atk sk" id="sk" hidden><b id="n2"></b><em id="d2"></em></span></span>
           <span class="cd" id="cd"></span><span class="charge"></span>
         </button>
-        <div class="hp"><div id="chf"></div><span id="cht"></span></div>
+        <div class="hp"><div id="chf"></div><div class="shbar" id="chs"></div><span id="cht"></span></div>
         <div class="sp" id="psp"><div id="pspf"></div><span id="pspt"></span></div>
       </div>
       <div class="side"><button class="shield" id="shield" type="button" aria-label="방어막"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/></svg><b id="shn">3</b></button></div>
@@ -153,9 +153,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="game.js?v=44"></script>
-<script src="patches.js?v=25"></script>
+<script src="game.js?v=45"></script>
+<script src="patches.js?v=26"></script>
 <script src="app.js?v=42"></script>
-<script src="multi.js?v=35"></script>
+<script src="multi.js?v=45"></script>
 </body>
 </html>
