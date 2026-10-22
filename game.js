@@ -26,7 +26,7 @@ const CARDS = {
   angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1400,
     basic: { name: '평타', dmg: 35, cd: 500, gain: 7 },
     skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 } },
-  nature: { name: '자연인 김승현', img: 'nature.jpg', rarity: 'rare', hp: 300,
+  nature: { name: '자연인 김승현', img: 'nature.jpg', rarity: 'rare', hp: 650, // 탱커
     basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
     skill: { name: '정글카이팅', dmg: 60, cd: 800, cost: 80, hold: 450 } },
   ltake: { name: 'L을 가져가는 김울', img: 'ltake.jpg', rarity: 'usr', hp: 1000,
@@ -38,10 +38,10 @@ const CARDS = {
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
     basic: { name: '평타', dmg: 23, cd: 500, gain: 8 },
     skill: { name: '꿈나라여행', dmg: 165, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
-  // 버프 스킬: 데미지 대신 3초 동안 평타가 22 데미지 · 0.2초마다로 바뀜
-  shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 400,
-    basic: { name: '평타', dmg: 20, cd: 800, gain: 6.5 },
-    skill: { name: '신난다', dmg: 0, cd: 300, cost: 80, hold: 450, buff: { ms: 3000, dmg: 22, cd: 200 } } },
+  // 버프 스킬: 데미지 대신 3초 동안 평타가 20 데미지 · 0.2초마다로 바뀜
+  shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 350,
+    basic: { name: '평타', dmg: 14, cd: 800, gain: 6.5 },
+    skill: { name: '신난다', dmg: 0, cd: 300, cost: 80, hold: 450, buff: { ms: 3000, dmg: 20, cd: 200 } } },
 };
 // 튜토리얼 전용 평범한 김울(버프): 평타 7, 스킬포인트 +10. 컬렉션·뽑기·관리자 지급에는 안 나옴
 CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };
