@@ -6,13 +6,14 @@ const SHIELD_MS = 1200, SWAP_MS = 2500;
 const safePhoto = p => typeof p === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,60000}$/.test(p) ? p : '';
 const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="av ${cls}">${s ? `<img src="${s}" alt="">` : '🧑'}</span>`; };
 
-// 등급(낮음→높음): 김울급 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급
+// 등급(낮음→높음): 김울급 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급 < 티원~
 const RARITY = {
   kimul: { name: '김울급', color: '#9aa5a5', rank: 0, refund: 50, up: 30 },
   rare: { name: '레어', color: '#5aa9ff', rank: 2, refund: 150, up: 90 },
   sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300, up: 180 },
   usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800, up: 360 },
   minjun: { name: '민준급', color: '#ff9f3d', rank: 5, refund: 2000, up: 750 },
+  t1: { name: '티원~', color: '#ff3b3b', rank: 6, refund: 5000, up: 1500 },
 };
 // 스킬포인트: 평타 1회당 쌓이는 양(gain)은 카드마다 다름, 스킬은 cost 필요
 const CARDS = {
@@ -53,6 +54,10 @@ const CARDS = {
   lovebug: { name: '러브버그', img: 'lovebug.jpg', rarity: 'sr', hp: 1100,
     basic: { name: '평타', dmg: 15, cd: 500, gain: 8 },
     skill: { name: '커플공격', dmg: 150, cd: 800, cost: 100, hold: 450, barrier: { amt: 300, step: 20 } } }, // 보호막: 다 사라진 뒤에만 새로 생기고, 생길 때마다 20씩 줄어듦
+  dark: { name: '어둠의 인도자 김민준', img: 'dark.jpg', rarity: 't1', hp: 1600,
+    basic: { name: '평타', dmg: 40, cd: 400, gain: 10 },
+    skill: { name: '그 긴거', dmg: 450, cd: 800, cost: 100, hold: 450, barrier: { amt: 200, step: 0 } }, // 보호막 200: 다 사라진 뒤에만 다시 생김 (크기 그대로)
+    lastStand: { name: '최후의 일격', at: 0.1, dmg: 600 } }, // 체력 10% 이하가 되면 자동으로 600 (한 판에 한 번)
   eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1600,
     basic: { name: '평타', dmg: 27, cd: 600, gain: 8 },
     skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 76, range: [51, 101], steal: true, cd: 800, cost: 100, hold: 450 } }, // 51~101 랜덤 데미지, 준 만큼 체력 흡수
@@ -80,7 +85,7 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
   if (b.skill.range) s.range = b.skill.range.map(r);
   if (b.skill.barrier) s.barrier = { ...b.skill.barrier, amt: r(b.skill.barrier.amt) };
-  CARDS[key] = { ...b, variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg), ...(b.basic.lifeHit ? { lifeHit: r(b.basic.lifeHit) } : {}) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
+  CARDS[key] = { ...b, ...(b.lastStand ? { lastStand: { ...b.lastStand, dmg: r(b.lastStand.dmg) } } : {}), variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg), ...(b.basic.lifeHit ? { lifeHit: r(b.basic.lifeHit) } : {}) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
   return key;
 }
 const lvKey = (t, lv) => lv > 1 ? ensureCard(`${t}@${lv}`) : t;
@@ -94,7 +99,7 @@ const basicOf = c => {
   return rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생기고, 생길 때마다 ${d.skill.barrier.step}씩 줄어요)` : ''}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -286,6 +291,8 @@ function hurtPlayer(d, big) {
   let left = d;
   if (c.barrier > 0) { const ab = Math.min(c.barrier, left); c.barrier -= ab; left -= ab; } // 보호막이 먼저 막음
   c.hp = Math.max(0, c.hp - left);
+  const ls = CARDS[c.type].lastStand;
+  if (ls && !c.lastUsed && c.hp <= CARDS[c.type].hp * ls.at) lastStand(c, ls);
   restart($('active'), 'hurt');
   navigator.vibrate?.(big ? [40, 30, 60] : 15);
   floatTxt($('active'), '-' + d, left ? (big ? 'dmg crit me' : 'dmg me') : 'dmg me barrier');
@@ -436,6 +443,15 @@ $('sk2btn').addEventListener('click', () => {
   if (c.en < s2.cost) return say(`${s2.name}: 스킬포인트 ${s2.cost} 이상이면 쓸 수 있어요. (쓰면 스킬포인트 전부 소모)`);
   attack('skill2');
 });
+
+function lastStand(c, ls) { // 최후의 일격: 체력이 일정 이하로 떨어지면 자동으로 강한 공격 (한 판에 한 번)
+  c.lastUsed = true;
+  navigator.vibrate?.([60, 40, 60, 40, 120]);
+  floatTxt($('active'), ls.name + '!', 'dmg me buff');
+  say(`${ls.name}! 상대에게 ${ls.dmg} 데미지!`);
+  if (S.cfg.pvp) { S.cfg.pvp.send('skill', ls.dmg, 0); fly(card, $('bot'), 'orb eye', 3.2, 520, () => {}); return; }
+  fly(card, $('bot'), 'orb eye', 3.2, 520, () => hit({ name: ls.name, dmg: ls.dmg }, true, c, false));
+}
 
 function grantBarrier(c, b) { // 보호막(러브버그): 남아 있으면 안 생김, 다 사라진 뒤에만 새로 (300 → 280 → 260 …)
   if (c.barrier > 0) return say(`보호막이 ${c.barrier} 남아 있어서 새로 생기지 않았어요.`);

@@ -314,7 +314,7 @@ function levelUp(t) {
 function detail(t) {
   const lv = lvOf(t), d = CARDS[lvKey(t, lv)], inDeck = U.inv.some(c => c.type === t && U.deck.includes(c.id));
   const nx = lv < LV_MAX ? CARDS[lvKey(t, lv + 1)] : null, cost = rar(t).up * lv;
-  const txt = `등급 ${rar(t).name} · Lv.${lv} / ${LV_MAX}${inDeck ? ' · 출격 중' : ''}\n체력 ${d.hp}\n${d.basic.name}: ${basicDesc(d)} (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)${d.skill.buff ? '\n※ 스킬 효과 중에는 스킬포인트가 쌓이지 않아요' : ''}${d.skill2 ? `\n${d.skill2.name}: 독 ${d.skill2.dmg} × ${d.skill2.poison.sec}초 (스킬포인트 ${d.skill2.cost}부터 사용 가능)\n※ 두 스킬 중 하나를 쓰면 스킬포인트를 전부 써요` : ''}`
+  const txt = `등급 ${rar(t).name} · Lv.${lv} / ${LV_MAX}${inDeck ? ' · 출격 중' : ''}\n체력 ${d.hp}\n${d.basic.name}: ${basicDesc(d)} (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)${d.skill.buff ? '\n※ 스킬 효과 중에는 스킬포인트가 쌓이지 않아요' : ''}${d.lastStand ? `\n${d.lastStand.name}: 체력 ${d.lastStand.at * 100}% 이하가 되면 자동으로 상대에게 ${d.lastStand.dmg} 데미지 (한 판에 한 번)` : ''}${d.skill2 ? `\n${d.skill2.name}: 독 ${d.skill2.dmg} × ${d.skill2.poison.sec}초 (스킬포인트 ${d.skill2.cost}부터 사용 가능)\n※ 두 스킬 중 하나를 쓰면 스킬포인트를 전부 써요` : ''}`
     + (nx ? `\n\n다음 Lv.${lv + 1}: 체력 ${nx.hp} · 평타 ${nx.basic.dmg}${nx.skill.dmg ? ` · 스킬 ${nx.skill.dmg}` : ''}\n같은 카드를 뽑으면 무료로 레벨업돼요.` : '\n\n최대 레벨이에요! 같은 카드를 뽑으면 BP로 바뀌어요.');
   if (nx) panel(d.name, txt, `레벨업 · ${U.admin ? '무료' : fmt(cost) + ' BP'}`, () => levelUp(t), '닫기', null, d.img);
   else panel(d.name, txt, '닫기', null, null, null, d.img);
@@ -351,7 +351,7 @@ $('deck-grid').addEventListener('click', e => {
 
 /* ── 뽑기 ── */
 // 등급별 뽑기 확률(%) — 합계 100
-const RATES = { kimul: 58.3, rare: 25, sr: 10, usr: 6, minjun: 0.7 };
+const RATES = { kimul: 58.2, rare: 25, sr: 10, usr: 6, minjun: 0.7, t1: 0.1 };
 const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && CARDS[k].rarity === r);
 // 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
 function effRates() {
