@@ -331,8 +331,8 @@ $('deck-grid').addEventListener('click', e => {
 });
 
 /* ── 뽑기 ── */
-// 등급별 뽑기 확률(%) — 냥코대전쟁 레어뽑기 참고, 울트라 슈퍼 레어 7 · 민준급 1.5 (합계 100)
-const RATES = { kimul: 36.5, worm: 20, rare: 25, sr: 10, usr: 7, minjun: 1.5 };
+// 등급별 뽑기 확률(%) — 합계 100
+const RATES = { kimul: 58.3, rare: 25, sr: 10, usr: 6, minjun: 0.7 };
 const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && CARDS[k].rarity === r);
 // 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
 function effRates() {

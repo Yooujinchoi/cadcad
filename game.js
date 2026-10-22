@@ -6,10 +6,9 @@ const SHIELD_MS = 1200, SWAP_MS = 2500;
 const safePhoto = p => typeof p === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,60000}$/.test(p) ? p : '';
 const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="av ${cls}">${s ? `<img src="${s}" alt="">` : '🧑'}</span>`; };
 
-// 등급(낮음→높음): 김울급 < 버러지 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급
+// 등급(낮음→높음): 김울급 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급
 const RARITY = {
   kimul: { name: '김울급', color: '#9aa5a5', rank: 0, refund: 50, up: 30 },
-  worm: { name: '버러지', color: '#7bc47f', rank: 1, refund: 70, up: 45 },
   rare: { name: '레어', color: '#5aa9ff', rank: 2, refund: 150, up: 90 },
   sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300, up: 180 },
   usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800, up: 360 },
@@ -36,6 +35,9 @@ const CARDS = {
   soyul: { name: '평범한 소율', img: 'soyul.jpg', rarity: 'kimul', hp: 120,
     basic: { name: '평타', dmg: 6, cd: 500, gain: 5 },
     skill: { name: '멘탈공격', dmg: 40, cd: 800, cost: 100, hold: 450 } },
+  jeonghun: { name: '평범한 정훈', img: 'jeonghun.jpg', rarity: 'kimul', hp: 110, // 평범한 김울과 평범한 소율 사이
+    basic: { name: '평타', dmg: 5.5, cd: 500, gain: 5 },
+    skill: { name: '꺼지시라~', dmg: 40, cd: 800, cost: 100, hold: 450 } },
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
     basic: { name: '평타', dmg: 22, cd: 500, gain: 8 }, // 한방딜: 스킬 위주
     skill: { name: '꿈나라여행', dmg: 280, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
@@ -63,7 +65,7 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   if (own(CARDS, key)) return key;
   const [t, l] = key.split('@'), b = own(CARDS, t) && !CARDS[t].variant ? CARDS[t] : null;
   if (!b || l === undefined) return 'kimul';
-  const lv = Math.min(LV_MAX, Math.max(1, Math.floor(+l) || 1)), m = 1 + LV_STEP * (lv - 1), r = x => Math.round(x * m);
+  const lv = Math.min(LV_MAX, Math.max(1, Math.floor(+l) || 1)), m = 1 + LV_STEP * (lv - 1), r = x => Number.isInteger(x) ? Math.round(x * m) : Math.round(x * m * 10) / 10; // 5.5처럼 소수인 값은 소수 첫째 자리까지
   const s = { ...b.skill, dmg: r(b.skill.dmg) };
   if (b.skill.heal) s.heal = r(b.skill.heal);
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
