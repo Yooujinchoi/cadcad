@@ -164,6 +164,7 @@ $('auth-form').addEventListener('submit', async e => {
 });
 
 function enter() {
+  listenNotice();
   if (!U.name) { $('name').value = ''; $('cnt').textContent = 0; show('s-name'); }
   else if (!U.tut) tutorial(0);
   else menu();
@@ -192,6 +193,7 @@ function tutorialDone() {
 function menu() {
   $('m-name').textContent = U.name; $('m-wal').textContent = wal(); $('m-av').innerHTML = avHtml(U.photo);
   $('m-dot').hidden = U.seenPatch === PATCHES[0].v;
+  $('m-notice').hidden = !U.admin;
   show('s-menu');
 }
 $('m-ai').onclick = diffs;
@@ -199,7 +201,35 @@ $('m-deck').onclick = deck;
 $('m-shop').onclick = shop;
 $('m-coll').onclick = coll;
 $('m-gacha').onclick = gacha;
-$('m-out').onclick = () => { auth.signOut(); U = null; show('s-auth'); };
+$('m-out').onclick = () => { stopNotice(); auth.signOut(); U = null; show('s-auth'); };
+
+/* ── 공지: 관리자가 쓰면 모든 계정 화면 위쪽에 실시간으로 표시 (Realtime Database 'notice') ── */
+let noticeRef = null, noticeNow = null;
+function listenNotice() {
+  if (noticeRef) return;
+  noticeRef = firebase.database().ref('notice');
+  noticeRef.on('value', s => { noticeNow = s.val(); renderNotice(); }, () => {});
+}
+function stopNotice() { if (noticeRef) noticeRef.off(); noticeRef = null; noticeNow = null; renderNotice(); }
+function renderNotice() {
+  let closed = null; try { closed = localStorage.getItem('kc_notice_closed'); } catch {}
+  const n = noticeNow, on = !!(n && n.text && String(n.at) !== closed);
+  $('notice').hidden = !on; $('app').classList.toggle('has-notice', on);
+  if (on) $('notice-t').textContent = n.text;
+}
+$('notice-t').onclick = () => { if (noticeNow) panel('📢 공지', noticeNow.text, '확인'); };
+$('notice-x').onclick = () => { if (noticeNow) { try { localStorage.setItem('kc_notice_closed', String(noticeNow.at)); } catch {} } renderNotice(); }; // 닫으면 새 공지가 올라올 때까지 숨김
+$('m-notice').onclick = () => {
+  if (!U.admin) return;
+  ask('공지 쓰기', '모든 계정 화면 위쪽에 보일 공지예요.\n비워두고 확인을 누르면 공지가 내려가요.', '공지 내용 (최대 100자)', v => {
+    v = v.trim();
+    const ref = firebase.database().ref('notice');
+    (v ? ref.set({ text: v, at: firebase.database.ServerValue.TIMESTAMP, by: U.name }) : ref.remove())
+      .then(() => toast(v ? '공지를 올렸어요.' : '공지를 내렸어요.'))
+      .catch(e => toast('공지 실패: ' + (e.code || e.message) + ' (Realtime Database 규칙을 확인하세요)'));
+  }, 100);
+  $('p-in').value = noticeNow && noticeNow.text ? noticeNow.text : '';
+};
 
 /* ── 패치 내역 (내용은 patches.js) ── */
 function patches() {
