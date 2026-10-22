@@ -54,7 +54,7 @@ const CARDS = {
   lovebug: { name: '러브버그', img: 'lovebug.jpg', rarity: 'sr', hp: 1100,
     basic: { name: '평타', dmg: 15, cd: 500, gain: 8 },
     skill: { name: '커플공격', dmg: 150, cd: 800, cost: 100, hold: 450, barrier: { amt: 300, step: 20 } } }, // 보호막: 다 사라진 뒤에만 새로 생기고, 생길 때마다 20씩 줄어듦
-  dark: { name: '어둠의 인도자 김민준', img: 'dark.jpg?v=2', rarity: 't1', hp: 1600,
+  dark: { name: '어둠의 인도자 김민준', img: 'dark.jpg?v=2', rarity: 't1', hp: 1600, retired: true, // 회수됨: 뽑기에서 안 나옴 (관리자만 보유)
     basic: { name: '평타', dmg: 40, cd: 400, gain: 10 },
     skill: { name: '그 긴거', dmg: 450, cd: 800, cost: 100, hold: 450, barrier: { amt: 200, step: 0 } }, // 보호막 200: 다 사라진 뒤에만 다시 생김 (크기 그대로)
     lastStand: { name: '최후의 일격', at: 0.1, dmg: 600 } }, // 체력 10% 이하가 되면 자동으로 600 (한 판에 한 번)

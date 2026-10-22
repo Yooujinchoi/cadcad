@@ -86,10 +86,11 @@ async function loadUser() {
     U.tut = true;
     for (const t in CARDS) if (!CARDS[t].tutorial && !CARDS[t].variant && !U.inv.some(c => c.type === t)) { U.inv.push({ id: U.seq++, type: t }); U.lv[t] = 1; }
   }
-  const gf = gifts();
-  if (!snap.exists || U.admin || mig || gf.length) await persist();
+  const gf = gifts(), rc = recalls();
+  if (!snap.exists || U.admin || mig || gf.length || rc.length) await persist();
   const notes = [];
   if (mig && mig.n) notes.push(`같은 카드 ${mig.n}장이 레벨업으로 바뀌었어요.${mig.bp ? `\n최대 레벨을 넘은 카드는 ${fmt(mig.bp)} BP로 돌려받았어요.` : ''}`);
+  rc.forEach(r => notes.push(`⚠ ${CARDS[r.type].name} 카드 회수\n카드가 회수되고, 보상으로 뽑기권 ${r.tickets}장 · ${fmt(r.bp)} BP를 받았어요.`));
   gf.forEach(g => notes.push(`🎁 ${g.title}\n뽑기권 ${g.tickets}장 · ${fmt(g.bp)} BP를 받았어요!`));
   if (notes.length) setTimeout(() => panel('알림', notes.join('\n\n'), '확인'), 800);
 }
@@ -105,6 +106,25 @@ function gifts() {
     if (U.gifts.includes(g.id)) continue;
     if (g.before && !(created < Date.parse(g.before))) continue;
     U.tickets += g.tickets; U.bp += g.bp; U.gifts.push(g.id); got.push(g);
+  }
+  return got;
+}
+// 카드 회수: 이 카드를 가진 일반 계정에서 빼고 보상 지급 (계정마다 한 번, 관리자는 제외)
+const RECALLS = [
+  { id: 'recall-dark', type: 'dark', tickets: 100, bp: 10000 },
+];
+function recalls() {
+  if (U.admin) return [];
+  U.recalls = U.recalls || [];
+  const got = [];
+  for (const r of RECALLS) {
+    if (U.recalls.includes(r.id)) continue;
+    const c = U.inv.find(x => x.type === r.type);
+    if (!c) continue;
+    U.inv = U.inv.filter(x => x.type !== r.type);
+    U.deck = U.deck.filter(id => id !== c.id);
+    if (U.lv) delete U.lv[r.type];
+    U.tickets += r.tickets; U.bp += r.bp; U.recalls.push(r.id); got.push(r);
   }
   return got;
 }
@@ -351,8 +371,8 @@ $('deck-grid').addEventListener('click', e => {
 
 /* ── 뽑기 ── */
 // 등급별 뽑기 확률(%) — 합계 100
-const RATES = { kimul: 58.2, rare: 25, sr: 10, usr: 6, minjun: 0.7, t1: 0.1 };
-const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && CARDS[k].rarity === r);
+const RATES = { kimul: 58.3, rare: 25, sr: 10, usr: 6, minjun: 0.7, t1: 0 }; // 티원~ 카드 회수 → 0.1%는 김울급으로
+const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && !CARDS[k].retired && CARDS[k].rarity === r);
 // 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
 function effRates() {
   const eff = {}; let carry = 0, last = null;
