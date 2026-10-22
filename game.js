@@ -48,7 +48,7 @@ const CARDS = {
     basic: { name: '평타', dmg: 20, cd: 500, gain: 9 },
     skill: { name: '월척이다', dmg: 170, cd: 800, cost: 90, hold: 450, drain: 10 } }, // 맞히면 상대 스킬포인트 -10 (상대가 스킬 준비 중이면 무효)
   furry: { name: '퍼리민준', img: 'furry.jpg', rarity: 'sr', hp: 500,
-    basic: { name: '평타', dmg: 19, cd: 500, gain: 6.5, lifeHit: 4, rage: { at: 0.5, cd: 300 } }, // 때릴 때마다 체력 +4, 체력 50% 이하면 0.3초마다
+    basic: { name: '평타', dmg: 19, cd: 500, gain: 6.5, lifeHit: 4, rage: { at: 0.5, cd: 350 } }, // 때릴 때마다 체력 +4, 체력 50% 이하면 0.35초마다
     skill: { name: '물어 뜯기', dmg: 140, cd: 800, cost: 80, hold: 450, heal: 60 } },
   eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1800,
     basic: { name: '평타', dmg: 15, cd: 700, gain: 8 },
