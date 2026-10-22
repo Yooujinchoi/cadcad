@@ -31,7 +31,7 @@ const CARDS = {
     skill: { name: '정글카이팅', dmg: 60, cd: 800, cost: 80, hold: 450 } },
   ltake: { name: 'L을 가져가는 김울', img: 'ltake.jpg', rarity: 'usr', hp: 1000,
     basic: { name: '평타', dmg: 12, cd: 350, gain: 5 },
-    skill: { name: '애 가지고 튀기', dmg: 140, cd: 800, cost: 50, hold: 450 } },
+    skill: { name: '애 가지고 튀기', dmg: 170, cd: 800, cost: 50, hold: 450 } },
   soyul: { name: '평범한 소율', img: 'soyul.jpg', rarity: 'kimul', hp: 120,
     basic: { name: '평타', dmg: 6, cd: 500, gain: 5 },
     skill: { name: '멘탈공격', dmg: 40, cd: 800, cost: 100, hold: 450 } },
