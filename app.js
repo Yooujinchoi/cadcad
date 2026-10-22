@@ -30,7 +30,7 @@ const AUTH_ERR = {
   'auth/network-request-failed': '네트워크 연결을 확인하세요.',
   'auth/too-many-requests': '시도가 너무 많아요. 잠시 후 다시 해보세요.',
 };
-let U = null, up = false, pulling = false, collSel = null; // collSel: 폐기 선택 모드(Set) 또는 null
+let U = null, up = false, pulling = false;
 
 const fmt = n => n.toLocaleString('en-US');
 const wal = () => U.admin ? 'BP ∞ · 뽑기권 ∞' : `BP ${fmt(U.bp)} · 뽑기권 ${U.tickets}`;
@@ -158,7 +158,7 @@ function menu() {
 $('m-ai').onclick = diffs;
 $('m-deck').onclick = deck;
 $('m-shop').onclick = shop;
-$('m-coll').onclick = () => { collSel = null; coll(); };
+$('m-coll').onclick = coll;
 $('m-gacha').onclick = gacha;
 $('m-out').onclick = () => { auth.signOut(); U = null; show('s-auth'); };
 
@@ -268,30 +268,12 @@ const tileEl = (t, count, extra = '', badge = '') => {
 };
 
 function coll() {
-  const sel = collSel, gs = groups(), n = U.inv.length;
-  const picked = sel ? U.inv.filter(c => sel.has(c.type)).length : 0;
-  $('coll-cnt').textContent = sel ? `${picked}장 선택` : `${gs.length}종`;
-  $('coll-sel').textContent = sel ? '취소' : '선택 폐기';
-  $('coll-bar').hidden = !sel;
-  if (sel) { $('sel-del').textContent = `폐기 (${picked})`; $('sel-all').textContent = gs.length && sel.size === gs.length ? '선택 해제' : '전체 선택'; }
-  $('coll-grid').innerHTML = gs.map(g => { const on = sel && sel.has(g.type); return tileEl(g.type, `Lv.${lvOf(g.type)}`, on ? ' sel' : '', on ? '<i class="no">✓</i>' : ''); }).join('') || EMPTY;
+  const gs = groups();
+  $('coll-cnt').textContent = `${gs.length}종`;
+  $('coll-grid').innerHTML = gs.map(g => tileEl(g.type, `Lv.${lvOf(g.type)}`)).join('') || EMPTY;
   show('s-coll');
 }
-const redraw = () => { const g = $('coll-grid'), y = g.scrollTop; coll(); g.scrollTop = y; };
-$('coll-grid').addEventListener('click', e => {
-  const b = e.target.closest('[data-t]'); if (!b) return;
-  const t = b.dataset.t;
-  if (!collSel) return detail(t);
-  collSel.has(t) ? collSel.delete(t) : collSel.add(t); // 선택 모드: 그 카드 전부 선택
-  redraw();
-});
-$('coll-sel').onclick = () => { collSel = collSel ? null : new Set(); redraw(); };
-$('sel-all').onclick = () => { const gs = groups(); collSel = collSel.size === gs.length ? new Set() : new Set(gs.map(g => g.type)); redraw(); };
-$('sel-del').onclick = () => {
-  const list = U.inv.filter(c => collSel.has(c.type));
-  if (!list.length) return toast('폐기할 카드를 선택하세요.');
-  confirmDiscard(list, () => { collSel = null; });
-};
+$('coll-grid').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) detail(b.dataset.t); });
 
 // ── 레벨 ──
 const lvOf = t => (U.lv && U.lv[t]) || 1;
@@ -318,29 +300,6 @@ function detail(t) {
   if (nx) panel(d.name, txt, `레벨업 · ${U.admin ? '무료' : fmt(cost) + ' BP'}`, () => levelUp(t), '닫기', null, d.img);
   else panel(d.name, txt, '닫기', null, null, null, d.img);
 }
-function discardAsk(t) {
-  const own = U.inv.filter(c => c.type === t);
-  if (own.length <= 1) return confirmDiscard(own);
-  ask('카드 폐기', `몇 장 폐기할까요? (보유 ${own.length}장)\n출격 중이 아닌 카드부터 폐기돼요.`, `1 ~ ${own.length}`, v => {
-    const k = Math.floor(Number(v));
-    if (!(k >= 1 && k <= own.length)) return toast(`1부터 ${own.length}까지 입력하세요.`);
-    confirmDiscard(own.slice().sort((a, b) => U.deck.includes(a.id) - U.deck.includes(b.id)).slice(0, k));
-  }, 3);
-  $('p-in').inputMode = 'numeric';
-}
-function confirmDiscard(list, after) {
-  const n = list.length, ids = new Set(list.map(c => c.id)), bp = list.reduce((s, c) => s + (rar(c.type).refund || 0) * lvOf(c.type), 0); // 환급 = 등급 환급 × 레벨
-  const high = list.filter(c => rar(c.type).rank >= 3).length, inDeck = list.filter(c => U.deck.includes(c.id)).length;
-  const warn = [high && `슈퍼레어 이상 ${high}장`, inDeck && `출격 카드 ${inDeck}장`].filter(Boolean).join(', ');
-  panel('카드 폐기', `${n === 1 ? '정말 카드를' : `정말 카드 ${n}장을`} 폐기하시겠습니까?\n(한번 폐기하면 되돌릴 수 없습니다)${warn ? `\n⚠ ${warn} 포함` : ''}\n돌려받는 BP: ${fmt(bp)}`, '취소', null, '폐기하기', () => {
-    U.inv = U.inv.filter(c => !ids.has(c.id)); U.deck = U.deck.filter(id => !ids.has(id));
-    list.forEach(c => { if (U.lv) delete U.lv[c.type]; });
-    if (after) after();
-    if (!U.admin) U.bp += bp;
-    persist(); coll(); toast(`${n}장을 폐기하고 ${fmt(bp)} BP를 돌려받았어요.`);
-  });
-}
-
 // 출격 카드: 위 5칸 = 출격 순서, 아래 = 보유 카드(남은 수량)
 function deck() {
   const seen = new Set(), used = U.deck.map(id => U.inv.find(c => c.id === id)).filter(c => c && !seen.has(c.type) && seen.add(c.type));

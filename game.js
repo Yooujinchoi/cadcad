@@ -8,12 +8,12 @@ const avHtml = (p, cls = '') => { const s = safePhoto(p); return `<span class="a
 
 // 등급(낮음→높음): 김울급 < 버러지 < 레어 < 슈퍼레어 < 울트라 슈퍼 레어 < 민준급
 const RARITY = {
-  kimul: { name: '김울급', color: '#9aa5a5', rank: 0, refund: 50, up: 100 },
-  worm: { name: '버러지', color: '#7bc47f', rank: 1, refund: 70, up: 150 },
-  rare: { name: '레어', color: '#5aa9ff', rank: 2, refund: 150, up: 300 },
-  sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300, up: 600 },
-  usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800, up: 1200 },
-  minjun: { name: '민준급', color: '#ff9f3d', rank: 5, refund: 2000, up: 2500 },
+  kimul: { name: '김울급', color: '#9aa5a5', rank: 0, refund: 50, up: 30 },
+  worm: { name: '버러지', color: '#7bc47f', rank: 1, refund: 70, up: 45 },
+  rare: { name: '레어', color: '#5aa9ff', rank: 2, refund: 150, up: 90 },
+  sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300, up: 180 },
+  usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800, up: 360 },
+  minjun: { name: '민준급', color: '#ff9f3d', rank: 5, refund: 2000, up: 750 },
 };
 // 스킬포인트: 평타 1회당 쌓이는 양(gain)은 카드마다 다름, 스킬은 cost 필요
 const CARDS = {
@@ -30,14 +30,14 @@ const CARDS = {
     basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
     skill: { name: '정글카이팅', dmg: 60, cd: 800, cost: 80, hold: 450 } },
   ltake: { name: 'L을 가져가는 김울', img: 'ltake.jpg', rarity: 'usr', hp: 1000,
-    basic: { name: '평타', dmg: 12, cd: 350, gain: 5 },
+    basic: { name: '평타', dmg: 18, cd: 350, gain: 5 }, // 지속딜: 약한 평타를 빠르게
     skill: { name: '애 가지고 튀기', dmg: 170, cd: 800, cost: 50, hold: 450 } },
   soyul: { name: '평범한 소율', img: 'soyul.jpg', rarity: 'kimul', hp: 120,
     basic: { name: '평타', dmg: 6, cd: 500, gain: 5 },
     skill: { name: '멘탈공격', dmg: 40, cd: 800, cost: 100, hold: 450 } },
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
-    basic: { name: '평타', dmg: 23, cd: 500, gain: 8 },
-    skill: { name: '꿈나라여행', dmg: 165, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
+    basic: { name: '평타', dmg: 20, cd: 500, gain: 8 }, // 한방딜: 스킬 위주
+    skill: { name: '꿈나라여행', dmg: 320, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
   seoho: { name: '낚시꾼 서호', img: 'seoho.jpg', rarity: 'sr', hp: 500,
     basic: { name: '평타', dmg: 20, cd: 500, gain: 9 },
     skill: { name: '월척이다', dmg: 170, cd: 800, cost: 90, hold: 450, drain: 10 } }, // 맞히면 상대 스킬포인트 -10 (상대가 스킬 준비 중이면 무효)
@@ -50,9 +50,9 @@ const CARDS = {
 CARDS.kimul_tut = { ...CARDS.kimul, tutorial: true, basic: { ...CARDS.kimul.basic, dmg: 7, gain: 10 } };
 const rar = t => RARITY[CARDS[t].rarity];
 
-// ── 레벨: 같은 카드는 한 장만 보유하고, 중복은 레벨업. 레벨당 체력·평타·스킬 +5% (Lv.10 = 1.45배)
+// ── 레벨: 같은 카드는 한 장만 보유하고, 중복은 레벨업. 레벨당 체력·평타·스킬 +1% (Lv.20 = 1.19배)
 //    → 최대 레벨이어도 한 등급 위 카드의 Lv.1을 넘지 않도록 맞춤. 레벨업 비용 = 등급별 up × 현재 레벨 (BP)
-const LV_MAX = 10, LV_STEP = 0.05;
+const LV_MAX = 20, LV_STEP = 0.01;
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 만들어 둠 (상대가 보낸 값도 안전하게 처리)
   key = String(key || 'kimul');
