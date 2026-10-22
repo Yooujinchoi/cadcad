@@ -38,6 +38,9 @@ const CARDS = {
   jeonghun: { name: '평범한 정훈', img: 'jeonghun.jpg', rarity: 'kimul', hp: 110, // 평범한 김울과 평범한 소율 사이
     basic: { name: '평타', dmg: 5.5, cd: 500, gain: 5 },
     skill: { name: '꺼지시라~', dmg: 40, cd: 800, cost: 100, hold: 450 } },
+  sangyeop: { name: '평범한 상엽', img: 'sangyeop.jpg', rarity: 'kimul', hp: 110, // 평범한 정훈과 능력치 같음
+    basic: { name: '평타', dmg: 5.5, cd: 500, gain: 5 },
+    skill: { name: '김울급 행동', dmg: 40, cd: 800, cost: 100, hold: 450 } },
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
     basic: { name: '평타', dmg: 22, cd: 500, gain: 8 }, // 한방딜: 스킬 위주
     skill: { name: '꿈나라여행', dmg: 280, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
