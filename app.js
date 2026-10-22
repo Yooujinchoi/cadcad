@@ -86,8 +86,27 @@ async function loadUser() {
     U.tut = true;
     for (const t in CARDS) if (!CARDS[t].tutorial && !CARDS[t].variant && !U.inv.some(c => c.type === t)) { U.inv.push({ id: U.seq++, type: t }); U.lv[t] = 1; }
   }
-  if (!snap.exists || U.admin || mig) await persist();
-  if (mig && mig.n) setTimeout(() => panel('레벨 시스템 도입', `같은 카드 ${mig.n}장이 레벨업으로 바뀌었어요.${mig.bp ? `\n최대 레벨을 넘은 카드는 ${fmt(mig.bp)} BP로 돌려받았어요.` : ''}`, '확인'), 800);
+  const gf = gifts();
+  if (!snap.exists || U.admin || mig || gf.length) await persist();
+  const notes = [];
+  if (mig && mig.n) notes.push(`같은 카드 ${mig.n}장이 레벨업으로 바뀌었어요.${mig.bp ? `\n최대 레벨을 넘은 카드는 ${fmt(mig.bp)} BP로 돌려받았어요.` : ''}`);
+  gf.forEach(g => notes.push(`🎁 ${g.title}\n뽑기권 ${g.tickets}장 · ${fmt(g.bp)} BP를 받았어요!`));
+  if (notes.length) setTimeout(() => panel('알림', notes.join('\n\n'), '확인'), 800);
+}
+// 선물: 계정마다 한 번만 지급. before 날짜 이전에 만든 계정만 받음 (새 선물은 배열에 추가)
+const GIFTS = [
+  { id: 'gift-2026-10', title: '업데이트 기념 선물', tickets: 20, bp: 20000, before: '2026-10-23T00:00:00+09:00' },
+];
+function gifts() {
+  const created = Date.parse((auth.currentUser.metadata || {}).creationTime || '');
+  U.gifts = U.gifts || [];
+  const got = [];
+  for (const g of GIFTS) {
+    if (U.gifts.includes(g.id)) continue;
+    if (g.before && !(created < Date.parse(g.before))) continue;
+    U.tickets += g.tickets; U.bp += g.bp; U.gifts.push(g.id); got.push(g);
+  }
+  return got;
 }
 function migrate() { // 레벨 시스템 도입 시 한 번: 중복 카드 → 레벨, 최대 레벨 초과분 → BP
   if (U.lvv) return null;
