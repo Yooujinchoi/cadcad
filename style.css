@@ -287,3 +287,4 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .active.shielded.buffed .card{box-shadow:0 0 0 3px #6fd8ff,0 0 36px #6fd8ff}
 .dmg.buff{font-size:28px;color:#7cff6b}
 .dmg.heal{color:#7cff6b} /* v29: 체력 회복 숫자 */
+.dmg.sp,.dmg.me.sp{margin-left:-55px;font-size:18px;color:#b58bff} /* v31: 스킬포인트 깎임 표시 */

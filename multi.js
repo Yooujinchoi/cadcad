@@ -121,7 +121,7 @@ function startPvp(ps) {
 
   battle({ who: U.name, tag: '멀티', botName: foe.name, foe: { deck: foe.deck, photo: foe.photo }, bot: 100, p: { windup: 900, shield: 0 }, skill: true, shield: true, quit: true, deck: mine.deck, delay: 3000,
     hint: () => '상대와 실시간 대결! 평타로 게이지를 모아 스킬을 쓰세요.',
-    pvp: { send: (k, d) => evRef.push({ u: me, k, d }) },
+    pvp: { send: (k, d, x) => evRef.push({ u: me, k, d, x: x || 0 }) },
     sync: () => { const c = S.cards[S.cur]; stRef.child(me).set({ ty: c.type, ci: S.cur, cost: CARDS[c.type].skill.cost, hp: c.hp, max: CARDS[c.type].hp, en: c.en, left: S.cards.filter(x => x.hp > 0).length, blk: S.myBlk }); },
     dead: () => { if (R) { R.over = true; R.ref.child('result').set({ loser: me }); } },
     exit: () => { if (R) { R.over = true; R.ref.child('result').set({ loser: me }); } finishPvp(false); },

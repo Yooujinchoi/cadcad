@@ -38,6 +38,9 @@ const CARDS = {
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
     basic: { name: '평타', dmg: 23, cd: 500, gain: 8 },
     skill: { name: '꿈나라여행', dmg: 165, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
+  seoho: { name: '낚시꾼 서호', img: 'seoho.jpg', rarity: 'sr', hp: 500,
+    basic: { name: '평타', dmg: 35, cd: 500, gain: 9 },
+    skill: { name: '월척이다', dmg: 170, cd: 800, cost: 90, hold: 450, drain: 10 } }, // 맞히면 상대 스킬포인트 -10 (상대가 스킬 준비 중이면 무효)
   // 버프 스킬: 데미지 대신 3초 동안 평타가 20 데미지 · 0.2초마다로 바뀜
   shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 350,
     basic: { name: '평타', dmg: 14, cd: 800, gain: 6.5 },
@@ -49,7 +52,7 @@ const rar = t => RARITY[CARDS[t].rarity];
 // 버프 스킬 효과 중에는 평타가 바뀌고, 스킬포인트는 쌓이지 않음 (무한 연속 사용 방지)
 const buffOn = c => c.buffUntil > performance.now();
 const basicOf = c => { const d = CARDS[c.type], b = d.skill.buff; return b && buffOn(c) ? { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 } : d.basic; };
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.dmg}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.dmg}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -200,7 +203,7 @@ function foeBasic(d) {
   restart(el, 'lunge'); setTimeout(() => el.classList.remove('lunge'), 260);
   fly(el, card, 'orb bad', 1.2, 320, () => hurtPlayer(d, false));
 }
-function foeSkill(d, windup, done) {
+function foeSkill(d, windup, done, drain) {
   const el = $('bot');
   el.classList.add('windup');
   say(S.cfg.shield ? '스킬을 준비 중! 방어막을 펼치세요!' : '훈련봇이 스킬을 준비 중이에요!');
@@ -208,12 +211,12 @@ function foeSkill(d, windup, done) {
     el.classList.remove('windup');
     fly(el, card, 'orb bad eye', 2.2, 300, () => {
       if (performance.now() < S.shieldUntil) { S.myBlk++; floatTxt($('active'), '방어!', 'dmg me blk'); say('방어 성공!'); navigator.vibrate?.(15); renderPlayer(); }
-      else { hurtPlayer(d, true); say('스킬에 맞았어요!'); }
+      else { if (drain) drainMe(drain); hurtPlayer(d, true); say('스킬에 맞았어요!'); }
     });
     if (done) done();
   }, windup);
 }
-function foeAttack(e) { if (S.ready) e.k === 'skill' ? foeSkill(e.d, S.p.windup) : foeBasic(e.d); }
+function foeAttack(e) { if (S.ready) e.k === 'skill' ? foeSkill(e.d, S.p.windup, null, e.x) : foeBasic(e.d); }
 function botAct() {
   const b = S.bot;
   if (b.en >= b.cost) return foeSkill(S.p.sdmg, S.p.windup, () => { S.bot.en = 0; renderBot(); later(botAct, S.p.gap); });
@@ -298,7 +301,7 @@ function attack(kind) {
   later(() => { S.busy = false; }, a.cd);
 
   if (S.cfg.pvp) { // 멀티: 공격 신호만 보내고, 결과는 상대 화면에서 계산
-    S.cfg.pvp.send(kind, a.dmg);
+    S.cfg.pvp.send(kind, a.dmg, a.drain || 0);
     if (!big && S.cfg.skill) {
       const cost = CARDS[c.type].skill.cost, was = c.en;
       c.en = Math.min(cost, c.en + a.gain);
@@ -324,6 +327,23 @@ function heal(c, n) { // 체력 회복 (최대 체력까지)
   renderPlayer();
 }
 
+// 스킬포인트 깎기(월척이다). 스킬 준비 중(봇: 스킬 예고 중 / 플레이어: 카드를 꾹 누르는 중)이면 무효
+function drainBot(n) {
+  const b = S.bot;
+  if ($('bot').classList.contains('windup')) return say('상대가 스킬 준비 중이라 스킬포인트를 못 깎았어요.');
+  if (!b.en) return;
+  b.en = Math.max(0, b.en - n);
+  floatTxt($('enemy'), `스킬포인트 -${n}`, 'dmg sp');
+  renderBot();
+}
+function drainMe(n) {
+  const c = S.cards[S.cur];
+  if (!S.ready || !c || card.classList.contains('charging') || !c.en) return;
+  c.en = Math.max(0, c.en - n);
+  floatTxt($('active'), `스킬포인트 -${n}`, 'dmg me sp');
+  renderPlayer();
+}
+
 function startBuff(c, a) {
   const t = S.tok;
   c.buffUntil = performance.now() + a.buff.ms;
@@ -343,6 +363,7 @@ function hit(a, big, c, blocked) {
   if (S.cfg.dummy) { S.dmgTotal += a.dmg; S.dmgStart = S.dmgStart || performance.now(); }
   else b.hp = Math.max(0, b.hp - a.dmg);
   renderBot();
+  if (big && a.drain) drainBot(a.drain);
   navigator.vibrate?.(big ? [30, 30, 50] : 25);
   restart(bot, 'hurt'); setTimeout(() => bot.classList.remove('hurt'), 300);
   floatTxt($('enemy'), '-' + a.dmg, big ? 'dmg crit' : 'dmg');
