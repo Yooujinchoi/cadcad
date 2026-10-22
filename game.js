@@ -23,9 +23,10 @@ const CARDS = {
   yongsa: { name: '용사 김울', img: 'yongsa.jpg', rarity: 'sr', hp: 700,
     basic: { name: '평타', dmg: 40, cd: 900, gain: 8 }, // 묵직한 평타: 40 데미지 · 0.9초마다
     skill: { name: '울칼리버', dmg: 210, cd: 800, cost: 100, hold: 450 } },
-  angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1400,
-    basic: { name: '평타', dmg: 35, cd: 500, gain: 7 },
-    skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 } },
+  angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1300,
+    basic: { name: '평타', dmg: 35, cd: 500, gain: 6 },
+    skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 },
+    skill2: { name: '지랄하기', dmg: 5, cd: 500, cost: 50, poison: { sec: 6 } } }, // 스킬 2개: 둘 중 하나를 쓰면 스킬포인트 전부 소모. 지랄하기 = 독 5 × 6초
   nature: { name: '자연인 김승현', img: 'nature.jpg', rarity: 'rare', hp: 650, // 탱커
     basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
     skill: { name: '정글카이팅', dmg: 60, cd: 800, cost: 80, hold: 450 } },
@@ -36,11 +37,14 @@ const CARDS = {
     basic: { name: '평타', dmg: 6, cd: 500, gain: 5 },
     skill: { name: '멘탈공격', dmg: 40, cd: 800, cost: 100, hold: 450 } },
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
-    basic: { name: '평타', dmg: 20, cd: 500, gain: 8 }, // 한방딜: 스킬 위주
-    skill: { name: '꿈나라여행', dmg: 320, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
+    basic: { name: '평타', dmg: 22, cd: 500, gain: 8 }, // 한방딜: 스킬 위주
+    skill: { name: '꿈나라여행', dmg: 280, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
   seoho: { name: '낚시꾼 서호', img: 'seoho.jpg', rarity: 'sr', hp: 500,
     basic: { name: '평타', dmg: 20, cd: 500, gain: 9 },
     skill: { name: '월척이다', dmg: 170, cd: 800, cost: 90, hold: 450, drain: 10 } }, // 맞히면 상대 스킬포인트 -10 (상대가 스킬 준비 중이면 무효)
+  eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1800,
+    basic: { name: '평타', dmg: 15, cd: 700, gain: 8 },
+    skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 45, range: [30, 60], steal: true, cd: 800, cost: 100, hold: 450 } }, // 30~60 랜덤 데미지, 준 만큼 체력 흡수
   // 버프 스킬: 데미지 대신 3초 동안 평타가 20 데미지 · 0.2초마다로 바뀜
   shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 350,
     basic: { name: '평타', dmg: 14, cd: 800, gain: 6.5 },
@@ -63,14 +67,15 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   const s = { ...b.skill, dmg: r(b.skill.dmg) };
   if (b.skill.heal) s.heal = r(b.skill.heal);
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
-  CARDS[key] = { ...b, variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg) }, skill: s };
+  if (b.skill.range) s.range = b.skill.range.map(r);
+  CARDS[key] = { ...b, variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
   return key;
 }
 const lvKey = (t, lv) => lv > 1 ? ensureCard(`${t}@${lv}`) : t;
 // 버프 스킬 효과 중에는 평타가 바뀌고, 스킬포인트는 쌓이지 않음 (무한 연속 사용 방지)
 const buffOn = c => c.buffUntil > performance.now();
 const basicOf = c => { const d = CARDS[c.type], b = d.skill.buff; return b && buffOn(c) ? { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 } : d.basic; };
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.dmg}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -138,7 +143,10 @@ function renderPlayer() {
   card.style.setProperty('--rc', rar(c.type).color);
   if (!$('cimg').src.endsWith(d.img)) $('cimg').src = d.img;
   $('n1').textContent = d.basic.name; $('d1').textContent = basicOf(c).dmg; $('active').classList.toggle('buffed', buffOn(c));
-  $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.buff ? '⚡' : d.skill.dmg;
+  $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.buff ? '⚡' : d.skill.range ? d.skill.range.join('~') : d.skill.dmg; $('d2').classList.toggle('wide', !!d.skill.range);
+  const s2 = d.skill2, b2 = $('sk2btn'); // 두 번째 스킬 버튼 (개씹빡친김울)
+  b2.hidden = !s2 || !S.cfg.skill;
+  if (s2) { b2.classList.toggle('ready', c.en >= s2.cost); $('sk2c').textContent = s2.cost; }
   $('chf').style.width = pct(c.hp, d.hp);
   $('cht').textContent = `HP ${c.hp} / ${d.hp}`;
   $('pspf').style.width = c.en + '%';
@@ -221,7 +229,7 @@ function foeBasic(d) {
   restart(el, 'lunge'); setTimeout(() => el.classList.remove('lunge'), 260);
   fly(el, card, 'orb bad', 1.2, 320, () => hurtPlayer(d, false));
 }
-function foeSkill(d, windup, done, drain) {
+function foeSkill(d, windup, done, drain, psn) {
   const el = $('bot');
   el.classList.add('windup');
   say(S.cfg.shield ? '스킬을 준비 중! 방어막을 펼치세요!' : '훈련봇이 스킬을 준비 중이에요!');
@@ -229,12 +237,18 @@ function foeSkill(d, windup, done, drain) {
     el.classList.remove('windup');
     fly(el, card, 'orb bad eye', 2.2, 300, () => {
       if (performance.now() < S.shieldUntil) { S.myBlk++; floatTxt($('active'), '방어!', 'dmg me blk'); say('방어 성공!'); navigator.vibrate?.(15); renderPlayer(); }
+      else if (psn) poisonMe(d, psn);
       else { if (drain) drainMe(drain); hurtPlayer(d, true); say('스킬에 맞았어요!'); }
     });
     if (done) done();
   }, windup);
 }
-function foeAttack(e) { if (S.ready) e.k === 'skill' ? foeSkill(e.d, S.p.windup, null, e.x) : foeBasic(e.d); }
+function foeAttack(e) {
+  if (!S.ready) return;
+  if (e.k === 'poison') foeSkill(e.d, S.p.windup, null, 0, e.x);
+  else if (e.k === 'skill') foeSkill(e.d, S.p.windup, null, e.x);
+  else foeBasic(e.d);
+}
 function botAct() {
   const b = S.bot;
   if (b.en >= b.cost) return foeSkill(S.p.sdmg, S.p.windup, () => { S.bot.en = 0; renderBot(); later(botAct, S.p.gap); });
@@ -306,8 +320,11 @@ $('bench').addEventListener('click', e => {
 
 function attack(kind) {
   if (!S.ready || S.busy) return;
-  const c = S.cards[S.cur], a = kind === 'basic' ? basicOf(c) : CARDS[c.type].skill, big = kind === 'skill';
-  if (big) { if (c.en < a.cost) return; c.en -= a.cost; renderPlayer(); }
+  const c = S.cards[S.cur], big = kind !== 'basic';
+  let a = kind === 'basic' ? basicOf(c) : CARDS[c.type][kind];
+  if (!a) return;
+  if (big) { if (c.en < a.cost) return; c.en = 0; renderPlayer(); } // 스킬을 쓰면 스킬포인트 전부 소모
+  if (a.range) a = { ...a, dmg: a.range[0] + Math.floor(Math.random() * (a.range[1] - a.range[0] + 1)) };
   if (big && a.buff) return startBuff(c, a);
   if (big && a.heal) heal(c, a.heal);
   S.busy = true;
@@ -319,7 +336,8 @@ function attack(kind) {
   later(() => { S.busy = false; }, a.cd);
 
   if (S.cfg.pvp) { // 멀티: 공격 신호만 보내고, 결과는 상대 화면에서 계산
-    S.cfg.pvp.send(kind, a.dmg, a.drain || 0);
+    S.cfg.pvp.send(a.poison ? 'poison' : big ? 'skill' : 'basic', a.dmg, a.poison ? a.poison.sec : (a.drain || 0));
+    if (a.steal) heal(c, a.dmg);
     if (!big && S.cfg.skill) {
       const cost = CARDS[c.type].skill.cost, was = c.en;
       c.en = Math.min(cost, c.en + a.gain);
@@ -362,6 +380,35 @@ function drainMe(n) {
   renderPlayer();
 }
 
+// 독(지랄하기): 1초마다 데미지, 지속시간 동안 계속 (그동안 스킬포인트는 계속 쌓임)
+function poisonBot(a) {
+  say(`${a.name}! ${a.poison.sec}초 동안 독 데미지`);
+  let n = a.poison.sec;
+  const tick = () => { if (n-- <= 0) return; dmgBot(a.dmg); if (S.bot.hp > 0) later(tick, 1000); };
+  later(tick, 1000);
+}
+function dmgBot(d) {
+  const b = S.bot;
+  if (S.cfg.dummy) { S.dmgTotal += d; S.dmgStart = S.dmgStart || performance.now(); } else b.hp = Math.max(0, b.hp - d);
+  renderBot();
+  floatTxt($('enemy'), '-' + d, 'dmg psn');
+  if (b.hp <= 0 && S.ready) { $('bot').className = 'bot down'; say('처치했어요!'); end(true); }
+}
+function poisonMe(d, sec) {
+  sec = Math.min(10, Math.max(1, Math.floor(+sec) || 1));
+  say('독에 걸렸어요!');
+  const tick = () => { if (sec-- <= 0) return; hurtPlayer(d, false); later(tick, 1000); };
+  later(tick, 1000);
+}
+
+$('sk2btn').addEventListener('click', () => {
+  if (!S.ready || S.busy) return;
+  const c = S.cards[S.cur], s2 = CARDS[c.type].skill2;
+  if (!s2) return;
+  if (c.en < s2.cost) return say(`${s2.name}: 스킬포인트 ${s2.cost} 이상이면 쓸 수 있어요. (쓰면 스킬포인트 전부 소모)`);
+  attack('skill2');
+});
+
 function startBuff(c, a) {
   const t = S.tok;
   c.buffUntil = performance.now() + a.buff.ms;
@@ -378,10 +425,12 @@ function hit(a, big, c, blocked) {
   if (!S.ready) return;
   const b = S.bot, bot = $('bot');
   if (blocked) { floatTxt($('enemy'), '방어!', 'dmg blk'); say('봇이 방어막으로 스킬을 막았어요!'); return; }
+  if (a.poison) return poisonBot(a);
   if (S.cfg.dummy) { S.dmgTotal += a.dmg; S.dmgStart = S.dmgStart || performance.now(); }
   else b.hp = Math.max(0, b.hp - a.dmg);
   renderBot();
   if (big && a.drain) drainBot(a.drain);
+  if (big && a.steal) heal(c, a.dmg);
   navigator.vibrate?.(big ? [30, 30, 50] : 25);
   restart(bot, 'hurt'); setTimeout(() => bot.classList.remove('hurt'), 300);
   floatTxt($('enemy'), '-' + a.dmg, big ? 'dmg crit' : 'dmg');
