@@ -312,3 +312,10 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .me{min-width:0}.me b{flex:0 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis} /* v51: 긴 닉네임(13글자) 줄임 */
 .active.vamp .card{box-shadow:0 0 0 3px #ffd166,0 0 28px #ffd166} /* v52: 피흡 효과 중 */
 .active.shielded.vamp .card{box-shadow:0 0 0 3px #6fd8ff,0 0 36px #6fd8ff}
+
+/* v53: 공지 띠 (화면 맨 위, 전투 화면에서는 숨김) */
+.notice{position:absolute;left:0;right:0;top:0;z-index:9;display:flex;align-items:center;gap:8px;padding:calc(7px + env(safe-area-inset-top)) 10px 7px 12px;font-size:13px;font-weight:700;color:#10151a;background:var(--gold)}
+.notice span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer}
+.notice button{padding:2px 6px;font-size:15px;color:#10151a;background:none;border:0}
+.has-notice .screen:not(#s-game){padding-top:calc(50px + env(safe-area-inset-top))}
+#app.has-notice:has(#s-game:not([hidden])) .notice{display:none}
