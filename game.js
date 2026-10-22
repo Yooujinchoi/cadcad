@@ -47,6 +47,9 @@ const CARDS = {
   seoho: { name: '낚시꾼 서호', img: 'seoho.jpg', rarity: 'sr', hp: 500,
     basic: { name: '평타', dmg: 20, cd: 500, gain: 9 },
     skill: { name: '월척이다', dmg: 170, cd: 800, cost: 90, hold: 450, drain: 10 } }, // 맞히면 상대 스킬포인트 -10 (상대가 스킬 준비 중이면 무효)
+  furry: { name: '퍼리민준', img: 'furry.jpg', rarity: 'sr', hp: 500,
+    basic: { name: '평타', dmg: 19, cd: 500, gain: 6.5, lifeHit: 4, rage: { at: 0.5, cd: 300 } }, // 때릴 때마다 체력 +4, 체력 50% 이하면 0.3초마다
+    skill: { name: '물어 뜯기', dmg: 140, cd: 800, cost: 80, hold: 450, heal: 60 } },
   eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1800,
     basic: { name: '평타', dmg: 15, cd: 700, gain: 8 },
     skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 45, range: [30, 60], steal: true, cd: 800, cost: 100, hold: 450 } }, // 30~60 랜덤 데미지, 준 만큼 체력 흡수
@@ -73,13 +76,20 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   if (b.skill.heal) s.heal = r(b.skill.heal);
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
   if (b.skill.range) s.range = b.skill.range.map(r);
-  CARDS[key] = { ...b, variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
+  CARDS[key] = { ...b, variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg), ...(b.basic.lifeHit ? { lifeHit: r(b.basic.lifeHit) } : {}) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
   return key;
 }
 const lvKey = (t, lv) => lv > 1 ? ensureCard(`${t}@${lv}`) : t;
 // 버프 스킬 효과 중에는 평타가 바뀌고, 스킬포인트는 쌓이지 않음 (무한 연속 사용 방지)
 const buffOn = c => c.buffUntil > performance.now();
-const basicOf = c => { const d = CARDS[c.type], b = d.skill.buff; return b && buffOn(c) ? { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 } : d.basic; };
+// 분노(퍼리민준): 체력이 일정 비율 이하로 내려가면 평타 속도가 빨라짐
+const rageOn = c => { const d = CARDS[c.type]; return !!d.basic.rage && c.hp > 0 && c.hp <= d.hp * d.basic.rage.at; };
+const basicOf = c => {
+  const d = CARDS[c.type], b = d.skill.buff;
+  if (b && buffOn(c)) return { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 };
+  return rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
+};
+const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
 const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
@@ -148,6 +158,9 @@ function renderPlayer() {
   card.style.setProperty('--rc', rar(c.type).color);
   if (!$('cimg').src.endsWith(d.img)) $('cimg').src = d.img;
   $('n1').textContent = d.basic.name; $('d1').textContent = basicOf(c).dmg; $('active').classList.toggle('buffed', buffOn(c));
+  const rg = rageOn(c); $('active').classList.toggle('rage', rg);
+  if (rg && !c.raged && S.ready) say('체력이 절반 이하! 공격 속도가 빨라졌어요!');
+  c.raged = rg;
   $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.buff ? '⚡' : d.skill.range ? d.skill.range.join('~') : d.skill.dmg; $('d2').classList.toggle('wide', !!d.skill.range);
   const s2 = d.skill2, b2 = $('sk2btn'); // 두 번째 스킬 버튼 (개씹빡친김울)
   b2.hidden = !s2 || !S.cfg.skill;
@@ -343,6 +356,7 @@ function attack(kind) {
   if (S.cfg.pvp) { // 멀티: 공격 신호만 보내고, 결과는 상대 화면에서 계산
     S.cfg.pvp.send(a.poison ? 'poison' : big ? 'skill' : 'basic', a.dmg, a.poison ? a.poison.sec : (a.drain || 0));
     if (a.steal) heal(c, a.dmg);
+    if (!big && a.lifeHit) heal(c, a.lifeHit);
     if (!big && S.cfg.skill) {
       const cost = CARDS[c.type].skill.cost, was = c.en;
       c.en = Math.min(cost, c.en + a.gain);
@@ -436,6 +450,7 @@ function hit(a, big, c, blocked) {
   renderBot();
   if (big && a.drain) drainBot(a.drain);
   if (big && a.steal) heal(c, a.dmg);
+  if (!big && a.lifeHit) heal(c, a.lifeHit);
   navigator.vibrate?.(big ? [30, 30, 50] : 25);
   restart(bot, 'hurt'); setTimeout(() => bot.classList.remove('hurt'), 300);
   floatTxt($('enemy'), '-' + a.dmg, big ? 'dmg crit' : 'dmg');

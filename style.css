@@ -301,3 +301,7 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .sk2:active{transform:scale(.92)}
 .dmg.psn{font-size:26px;color:#9bff6b}
 .skill em.wide{width:auto;padding:0 6px;border-radius:12px;font-size:11px}
+
+/* v42: 분노(체력 절반 이하) 표시 */
+.active.rage .card{box-shadow:0 0 0 3px #ff5a4d,0 0 26px #ff5a4d}
+.active.shielded.rage .card{box-shadow:0 0 0 3px #6fd8ff,0 0 36px #6fd8ff}
