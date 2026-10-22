@@ -12,14 +12,14 @@ const auth = firebase.auth(), db = firebase.firestore();
 const ADMIN_EMAIL = 'yooujin_choi@kimul.app'; // 아이디 Yooujin_choi 로 가입한 계정이 관리자
 const mail = id => `${id}@kimul.app`;
 const uid = () => auth.currentUser.uid;
-const NAME_MAX = 8;
+const NAME_MAX = 13;
 const DIFFS = [
   { name: '훈련봇', info: '체력 무한 · 공격 안 함 · 방어막 안 씀 · 보상 없음 (연습용)', train: true, bot: 1, bp: 0, p: { dmg: 0, gap: 1000, gain: 0, sdmg: 0, windup: 1000, shield: 0 } },
   { name: '김울급', info: '진짜 겁나 쉬움', bot: 60, bp: 50, p: { dmg: 1, gap: 2200, gain: 5, sdmg: 5, windup: 1800, shield: 0 } },
   { name: '쉬움', info: '입문용', bot: 200, bp: 400, p: { dmg: 5, gap: 1200, gain: 5, sdmg: 40, cost: 100, windup: 1400, shield: 0 } },
-  { name: '보통', info: '봇도 방어막 사용', bot: 500, bp: 1000, p: { dmg: 7, gap: 900, gain: 5, sdmg: 55, cost: 80, windup: 1100, shield: .35 } },
-  { name: '어려움', info: '빠르고 방어도 잘함', bot: 1000, bp: 4000, p: { dmg: 12, gap: 800, gain: 5, sdmg: 80, cost: 65, windup: 900, shield: .6 } },
-  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 10000, p: { dmg: 25, gap: 650, gain: 5, sdmg: 100, cost: 50, windup: 750, shield: .85 } },
+  { name: '보통', info: '기본기 연습', bot: 500, bp: 1000, p: { dmg: 7, gap: 900, gain: 5, sdmg: 55, cost: 80, windup: 1100, shield: 0 } },
+  { name: '어려움', info: '빠르고 아픔', bot: 1000, bp: 4000, p: { dmg: 12, gap: 800, gain: 5, sdmg: 80, cost: 65, windup: 900, shield: 0 } },
+  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 30000, p: { dmg: 25, gap: 650, gain: 5, sdmg: 100, cost: 50, windup: 750, shield: 0 } },
 ];
 const AUTH_ERR = {
   'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
@@ -371,8 +371,8 @@ $('deck-grid').addEventListener('click', e => {
 
 /* ── 뽑기 ── */
 // 등급별 뽑기 확률(%) — 합계 100
-const RATES = { kimul: 58.3, rare: 25, sr: 10, usr: 6, minjun: 0.7, t1: 0 }; // 티원~ 카드 회수 → 0.1%는 김울급으로
-const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && !CARDS[k].retired && CARDS[k].rarity === r);
+const RATES = { kimul: 58.3, rare: 25, sr: 10, usr: 6, minjun: 0.7 }; // 티원~는 관리자 전용 (뽑기 없음)
+const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && !CARDS[k].retired && !RARITY[CARDS[k].rarity].adminOnly && CARDS[k].rarity === r);
 // 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
 function effRates() {
   const eff = {}; let carry = 0, last = null;
@@ -395,7 +395,7 @@ const rateText = () => { // 등급별 확률만 표시 (카드가 없는 등급�
 function gacha() {
   pulling = false; $('pack').className = 'pack'; $('g-wal').textContent = wal();
   $('g-rate').textContent = rateText();
-  $('g-tiers').innerHTML = '<em>낮음</em>' + Object.values(RARITY).sort((a, b) => a.rank - b.rank).map(r => `<span style="background:${r.color}">${r.name}</span>`).join('<i>›</i>') + '<em>높음</em>';
+  $('g-tiers').innerHTML = '<em>낮음</em>' + Object.values(RARITY).filter(r => !r.adminOnly).sort((a, b) => a.rank - b.rank).map(r => `<span style="background:${r.color}">${r.name}</span>`).join('<i>›</i>') + '<em>높음</em>';
   show('s-gacha');
 }
 

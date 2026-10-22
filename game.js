@@ -13,7 +13,7 @@ const RARITY = {
   sr: { name: '슈퍼레어', color: '#c07bff', rank: 3, refund: 300, up: 180 },
   usr: { name: '울트라 슈퍼 레어', color: '#ff5c8a', rank: 4, refund: 800, up: 360 },
   minjun: { name: '민준급', color: '#ff9f3d', rank: 5, refund: 2000, up: 750 },
-  t1: { name: '티원~', color: '#ff3b3b', rank: 6, refund: 5000, up: 1500 },
+  t1: { name: '티원~', color: '#ff3b3b', rank: 6, refund: 5000, up: 1500, adminOnly: true }, // 관리자 전용: 뽑기·등급 안내에 안 나옴
 };
 // 스킬포인트: 평타 1회당 쌓이는 양(gain)은 카드마다 다름, 스킬은 cost 필요
 const CARDS = {
@@ -53,7 +53,7 @@ const CARDS = {
     skill: { name: '물어 뜯기', dmg: 140, cd: 800, cost: 80, hold: 450, heal: 60 } },
   lovebug: { name: '러브버그', img: 'lovebug.jpg', rarity: 'sr', hp: 1100,
     basic: { name: '평타', dmg: 15, cd: 500, gain: 8 },
-    skill: { name: '커플공격', dmg: 150, cd: 800, cost: 100, hold: 450, barrier: { amt: 300, step: 20 } } }, // 보호막: 다 사라진 뒤에만 새로 생기고, 생길 때마다 20씩 줄어듦
+    skill: { name: '커플공격', dmg: 150, cd: 800, cost: 100, hold: 450, barrier: { amt: 60, step: 5 } } }, // 보호막: 다 사라진 뒤에만 새로 생기고, 생길 때마다 5씩 줄어듦 (60 → 55 → 50 …)
   dark: { name: '어둠의 인도자 김민준', img: 'dark.jpg?v=2', rarity: 't1', hp: 1600, retired: true, // 회수됨: 뽑기에서 안 나옴 (관리자만 보유)
     basic: { name: '평타', dmg: 40, cd: 400, gain: 10 },
     skill: { name: '그 긴거', dmg: 450, cd: 800, cost: 100, hold: 450, barrier: { amt: 200, step: 0 } }, // 보호막 200: 다 사라진 뒤에만 다시 생김 (크기 그대로)
