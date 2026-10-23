@@ -42,7 +42,7 @@ const CARDS = {
   sangyeop: { name: '평범한 상엽', img: 'sangyeop.jpg', rarity: 'kimul', hp: 110, // 평범한 정훈과 능력치 같음
     basic: { name: '평타', dmg: 5.5, cd: 500, gain: 5 },
     skill: { name: '김울급 행동', dmg: 40, cd: 800, cost: 100, hold: 450 } },
-  handsome: { name: '잘생긴척하는김울', img: 'handsome.jpg', rarity: 'kimul', hp: 1300,
+  handsome: { name: '잘생긴척하는김울', img: 'handsome.jpg', rarity: 'minjun', hp: 1300,
     basic: { name: '평타', dmg: 17, cd: 150, gain: 5 },
     skill: { name: '머니머니머니', dmg: 70, cd: 800, cost: 100, hold: 450, vamp: { ms: 7000 } } }, // 70 데미지 + 7초 동안 평타 피흡 (잃은 체력 비율만큼)
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
