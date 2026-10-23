@@ -48,6 +48,9 @@ const CARDS = {
   gabeorin: { name: '가버린용상엽', img: 'gabeorin.jpg', rarity: 'usr', hp: 700,
     basic: { name: '평타', dmg: 22, cd: 500, gain: 8 }, // 한방딜: 스킬 위주
     skill: { name: '꿈나라여행', dmg: 280, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
+  lolboy: { name: '롤대남 서호', img: 'lolboy.jpg', rarity: 'usr', hp: 900,
+    basic: { name: '평타', dmg: 20, cd: 500, gain: 8 },
+    skill: { name: '진혼곡', dmg: 140, cd: 800, cost: 100, hold: 450, requiem: true } }, // 상대 대기 카드까지 전부 140 (방어막으로 막으면 전부 무효)
   seoho: { name: '낚시꾼 서호', img: 'seoho.jpg', rarity: 'sr', hp: 500,
     basic: { name: '평타', dmg: 20, cd: 500, gain: 9 },
     skill: { name: '월척이다', dmg: 170, cd: 800, cost: 90, hold: 450, drain: 10 } }, // 맞히면 상대 스킬포인트 -10 (상대가 스킬 준비 중이면 무효)
@@ -102,7 +105,7 @@ const basicOf = c => {
   return rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ' · 상대 대기 카드까지 전부 (방어막으로 막으면 전부 무효)' : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -277,6 +280,7 @@ function foeSkill(d, windup, done, drain, psn) {
 }
 function foeAttack(e) {
   if (!S.ready) return;
+  if (e.k === 'requiem') return foeRequiem(e.d);
   if (e.k === 'poison') foeSkill(e.d, S.p.windup, null, 0, e.x);
   else if (e.k === 'skill') foeSkill(e.d, S.p.windup, null, e.x);
   else foeBasic(e.d);
@@ -365,6 +369,7 @@ function attack(kind) {
   if (big && a.heal) heal(c, a.heal);
   if (big && a.barrier) grantBarrier(c, a.barrier);
   if (big && a.vamp) startVamp(c, a);
+  if (big && a.requiem) return castRequiem(c, a);
   S.busy = true;
   card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
 
@@ -467,6 +472,50 @@ function startVamp(c, a) {
   say(`${a.name}! ${a.vamp.ms / 1000}초 동안 평타로 잃은 체력 비율만큼 회복해요!`);
   renderPlayer();
   setTimeout(() => { if (S.tok === t) renderPlayer(); }, a.vamp.ms + 30);
+}
+
+// 진혼곡(롤대남 서호): 카서스 궁처럼 잠깐 읊조린 뒤 하늘에서 빛기둥이 상대 카드 전부에 떨어짐
+const REQ_MS = 1500;
+function veil(on) { $('veil').hidden = !on; }
+function pillars(els) {
+  navigator.vibrate?.([30, 30, 90]);
+  els.forEach(el => {
+    if (!el) return;
+    const r = el.getBoundingClientRect(), p = document.createElement('div');
+    p.className = 'pillar'; p.style.left = r.left + 'px'; p.style.width = r.width + 'px'; p.style.height = r.bottom + 'px';
+    document.body.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  });
+}
+function castRequiem(c, a) { // 내가 쓸 때
+  S.busy = true; later(() => { S.busy = false; }, REQ_MS + a.cd);
+  $('active').classList.add('channel'); veil(true);
+  say(`${a.name}… 상대 카드 전부에게 ${a.dmg}!`);
+  if (S.cfg.pvp) S.cfg.pvp.send('requiem', a.dmg, 0);
+  later(() => {
+    $('active').classList.remove('channel'); veil(false);
+    pillars([$('bot')]);
+    if (!S.cfg.pvp) hit({ name: a.name, dmg: a.dmg }, true, c, false); // 봇은 카드가 하나라 한 번만
+  }, REQ_MS);
+}
+function foeRequiem(d) { // 상대가 쓸 때 (멀티)
+  $('bot').classList.add('windup'); veil(true);
+  say('상대가 진혼곡을 부르고 있어요! 방어막을 펼치세요!');
+  later(() => {
+    $('bot').classList.remove('windup'); veil(false);
+    if (performance.now() < S.shieldUntil) { // 방어막으로 막으면 모든 카드 무효
+      S.myBlk++; floatTxt($('active'), '방어!', 'dmg me blk'); say('진혼곡을 막았어요!'); renderPlayer(); return;
+    }
+    pillars([card, ...document.querySelectorAll('#bench .mini:not(.dead)')]);
+    S.cards.forEach((x, i) => { // 대기 카드들 먼저
+      if (i === S.cur || x.hp <= 0) return;
+      let left = d;
+      if (x.barrier > 0) { const ab = Math.min(x.barrier, left); x.barrier -= ab; left -= ab; }
+      x.hp = Math.max(0, x.hp - left);
+    });
+    hurtPlayer(d, true); // 지금 카드 (쓰러지면 교체, 화면 갱신)
+    say('진혼곡에 맞았어요! 대기 카드까지 피해를 입었어요.');
+  }, REQ_MS);
 }
 
 function grantBarrier(c, b) { // 보호막(러브버그): 남아 있으면 안 생김, 다 사라진 뒤에만 새로 (300 → 280 → 260 …)

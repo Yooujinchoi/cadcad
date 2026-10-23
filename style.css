@@ -319,3 +319,10 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .notice button{padding:2px 6px;font-size:15px;color:#10151a;background:none;border:0}
 .has-notice .screen:not(#s-game){padding-top:calc(50px + env(safe-area-inset-top))}
 #app.has-notice:has(#s-game:not([hidden])) .notice{display:none}
+
+/* v57: 진혼곡 (카서스 궁 느낌) */
+.veil{position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse at 50% 35%,rgba(140,80,255,.22),rgba(20,0,45,.6));animation:veilin .4s both}
+@keyframes veilin{from{opacity:0}}
+.pillar{position:fixed;top:0;z-index:6;pointer-events:none;border-radius:0 0 10px 10px;background:linear-gradient(180deg,rgba(200,170,255,0),rgba(190,140,255,.85) 70%,#fff);box-shadow:0 0 30px #b58bff,0 0 70px #7a4dff;transform-origin:bottom;animation:pillar .75s ease-out forwards}
+@keyframes pillar{0%{transform:scaleX(.15);opacity:0}15%{transform:scaleX(1.15);opacity:1}100%{transform:scaleX(.3);opacity:0}}
+.active.channel .card{box-shadow:0 0 0 3px #b58bff,0 0 40px #7a4dff}
