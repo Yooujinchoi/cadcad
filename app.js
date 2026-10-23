@@ -81,13 +81,14 @@ async function loadUser() {
   const u = auth.currentUser, snap = await db.collection('users').doc(u.uid).get();
   U = snap.exists ? snap.data() : { id: u.email.split('@')[0], name: '', tut: false, bp: 0, tickets: 0, inv: [], deck: [], seq: 1 };
   U.admin = u.email === ADMIN_EMAIL;
+  const gotNo = await ensureNo();
   const mig = migrate();
   if (U.admin) {
     U.tut = true;
     for (const t in CARDS) if (!CARDS[t].tutorial && !CARDS[t].variant && !U.inv.some(c => c.type === t)) { U.inv.push({ id: U.seq++, type: t }); U.lv[t] = 1; }
   }
   const gf = gifts(), rc = recalls();
-  if (!snap.exists || U.admin || mig || gf.length || rc.length) await persist();
+  if (!snap.exists || U.admin || mig || gf.length || rc.length || gotNo) await persist();
   const notes = [];
   if (mig && mig.n) notes.push(`같은 카드 ${mig.n}장이 레벨업으로 바뀌었어요.${mig.bp ? `\n최대 레벨을 넘은 카드는 ${fmt(mig.bp)} BP로 돌려받았어요.` : ''}`);
   rc.forEach(r => notes.push(`⚠ ${CARDS[r.type].name} 카드 회수\n카드가 회수되고, 보상으로 뽑기권 ${r.tickets}장 · ${fmt(r.bp)} BP를 받았어요.`));
@@ -128,6 +129,73 @@ function recalls() {
   }
   return got;
 }
+// ── 아이템: 기본은 힐, 상점에서 방어막을 사면 장착 가능 ──
+const hasShield = u => !!(u.admin || (u.items || []).includes('shield'));
+const myItem = () => U.item === 'shield' && hasShield(U) ? 'shield' : 'heal';
+$('item-bar').addEventListener('click', e => {
+  const b = e.target.closest('[data-item]'); if (!b) return;
+  if (b.dataset.item === 'shield' && !hasShield(U)) return panel('아이템: 방어막', '상점에서 10,000 BP에 살 수 있어요.\n한 번 사면 계속 쓸 수 있어요.', '상점으로', shop, '닫기');
+  U.item = b.dataset.item; persist(); deck();
+});
+
+// ── 고유 번호: 계정마다 8자리, 서버(nos)에 한 번만 등록되고 바꿀 수 없음 ──
+async function ensureNo() {
+  if (U.no) return false;
+  const me = auth.currentUser.uid;
+  for (let i = 0; i < 6; i++) {
+    const no = String(10000000 + Math.floor(Math.random() * 90000000));
+    try {
+      const r = await firebase.database().ref('nos/' + no).transaction(cur => cur === null ? me : undefined);
+      if (r.committed) { U.no = no; return true; }
+    } catch (e) { return false; } // 규칙이 아직 없으면 다음에 다시 시도
+  }
+  return false;
+}
+$('pf-no').onclick = () => {
+  if (!U.no) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(U.no) : Promise.reject()).then(() => toast('고유 번호를 복사했어요.'), () => toast(`고유 번호: ${U.no}`));
+};
+
+// ── 우편함: 관리자가 특정 계정에 보낸 보상 (Realtime Database mail/<uid>) ──
+let mailRef = null;
+function listenMail() {
+  if (mailRef || !auth.currentUser) return;
+  mailRef = firebase.database().ref('mail/' + auth.currentUser.uid);
+  mailRef.on('value', s => Object.keys(s.val() || {}).forEach(claimMail), () => {});
+}
+function stopMail() { if (mailRef) mailRef.off(); mailRef = null; }
+function claimMail(id) { // 지우는 데 성공한 기기만 보상을 받아서 두 번 받을 수 없음
+  let got = null;
+  mailRef.child(id).transaction(cur => { got = cur; return cur ? null : undefined; }, (err, ok) => {
+    if (err || !ok || !got || !U) return;
+    const tk = Math.max(0, Math.floor(+got.tickets || 0)), bp = Math.max(0, Math.floor(+got.bp || 0));
+    U.tickets += tk; U.bp += bp; persist();
+    toast(`🎁 보상 도착! 뽑기권 ${tk}장 · ${fmt(bp)} BP`);
+    if (!$('s-menu').hidden) menu();
+  });
+}
+$('m-gift').onclick = () => { // 관리자: 고유 번호로 보상 보내기
+  if (!U.admin) return;
+  const num = () => { $('p-in').inputMode = 'numeric'; };
+  ask('보상 지급', '받을 계정의 고유 번호(8자리)를 입력하세요.\n고유 번호는 각자 프로필에서 볼 수 있어요.', '고유 번호', no => {
+    no = no.replace(/\D/g, '');
+    if (no.length !== 8) return toast('고유 번호는 8자리 숫자예요.');
+    firebase.database().ref('nos/' + no).once('value').then(s => {
+      const to = s.val();
+      if (!to) return toast('그 고유 번호의 계정이 없어요.');
+      ask('보상 지급', `고유 번호 ${no}에게 줄 뽑기권 수를 입력하세요.`, '뽑기권 (0 이상)', tk => {
+        ask('보상 지급', `고유 번호 ${no}에게 줄 BP를 입력하세요.`, 'BP (0 이상)', bp => {
+          tk = Math.max(0, Math.floor(+tk || 0)); bp = Math.max(0, Math.floor(+bp || 0));
+          if (!tk && !bp) return toast('보낼 보상이 없어요.');
+          firebase.database().ref('mail/' + to).push({ tickets: tk, bp, at: firebase.database.ServerValue.TIMESTAMP })
+            .then(() => toast(`${no}에게 뽑기권 ${tk}장 · ${fmt(bp)} BP를 보냈어요.`))
+            .catch(e => toast('지급 실패: ' + (e.code || e.message)));
+        }, 9); num();
+      }, 5); num();
+    }).catch(e => toast('조회 실패: ' + (e.code || e.message)));
+  }, 8); num();
+};
+
 function migrate() { // 레벨 시스템 도입 시 한 번: 중복 카드 → 레벨, 최대 레벨 초과분 → BP
   if (U.lvv) return null;
   U.lv = U.lv || {};
@@ -164,7 +232,7 @@ $('auth-form').addEventListener('submit', async e => {
 });
 
 function enter() {
-  listenNotice();
+  listenNotice(); listenMail();
   if (!U.name) { $('name').value = ''; $('cnt').textContent = 0; show('s-name'); }
   else if (!U.tut) tutorial(0);
   else menu();
@@ -193,7 +261,7 @@ function tutorialDone() {
 function menu() {
   $('m-name').textContent = U.name; $('m-wal').textContent = wal(); $('m-av').innerHTML = avHtml(U.photo);
   $('m-dot').hidden = U.seenPatch === PATCHES[0].v;
-  $('m-notice').hidden = !U.admin;
+  $('m-notice').hidden = !U.admin; $('m-gift').hidden = !U.admin;
   show('s-menu');
 }
 $('m-ai').onclick = diffs;
@@ -201,7 +269,7 @@ $('m-deck').onclick = deck;
 $('m-shop').onclick = shop;
 $('m-coll').onclick = coll;
 $('m-gacha').onclick = gacha;
-$('m-out').onclick = () => { stopNotice(); auth.signOut(); U = null; show('s-auth'); };
+$('m-out').onclick = () => { stopNotice(); stopMail(); auth.signOut(); U = null; show('s-auth'); };
 
 /* ── 공지: 관리자가 쓰면 모든 계정 화면 위쪽에 실시간으로 표시 (Realtime Database 'notice') ── */
 let noticeRef = null, noticeNow = null;
@@ -242,6 +310,7 @@ $('m-patch').onclick = patches;
 /* ── 프로필 (사진은 128px로 줄여 Firestore에 저장) ── */
 function profile() {
   $('pf-name').textContent = U.name; $('pf-av').innerHTML = avHtml(U.photo, 'xl');
+  $('pf-no').textContent = U.no ? `고유 번호 ${U.no} · 복사` : '고유 번호 발급 대기 중';
   $('pf-rn').textContent = `이름 변경 (이름변경권 ${U.admin ? '∞' : (U.nt || 0)}장)`;
   show('s-prof');
 }
@@ -261,15 +330,18 @@ const ITEMS = [
   { icon: '🎟', name: '뽑기 티켓 1장', price: 500, give: u => { u.tickets += 1; } },
   { icon: '🎟', name: '뽑기 티켓 10장', price: 4800, note: '장당 480 BP', give: u => { u.tickets += 10; } },
   { icon: '✏️', name: '이름변경권 1장', price: 1000, give: u => { u.nt = (u.nt || 0) + 1; } },
+  { icon: '🛡', name: '아이템: 방어막', price: 10000, note: '전투에서 힐 대신 장착 · 한 번 사면 계속 사용', owned: u => hasShield(u),
+    give: u => { u.items = [...new Set([...(u.items || []), 'shield'])]; u.item = 'shield'; } },
 ];
 function shop() {
   $('sh-wal').textContent = U.admin ? 'BP ∞ · 뽑기권 ∞ · 변경권 ∞' : `BP ${fmt(U.bp)} · 뽑기권 ${U.tickets} · 변경권 ${U.nt || 0}`;
-  $('sh-list').innerHTML = ITEMS.map((it, i) => `<button class="mbtn item" data-i="${i}"><span>${it.icon} ${it.name}${it.note ? `<small>${it.note}</small>` : ''}</span><b>${fmt(it.price)} BP</b></button>`).join('');
+  $('sh-list').innerHTML = ITEMS.map((it, i) => `<button class="mbtn item" data-i="${i}"><span>${it.icon} ${it.name}${it.note ? `<small>${it.note}</small>` : ''}</span><b>${it.owned && it.owned(U) ? '보유 중' : fmt(it.price) + ' BP'}</b></button>`).join('');
   show('s-shop');
 }
 $('sh-list').addEventListener('click', e => {
   const b = e.target.closest('[data-i]'); if (!b) return;
   const it = ITEMS[+b.dataset.i];
+  if (it.owned && it.owned(U)) return toast('이미 가지고 있어요. 출격 카드 설정에서 장착할 수 있어요.');
   if (!U.admin && U.bp < it.price) return toast('BP가 부족해요.');
   panel('구매 확인', `${it.name}\n${U.admin ? '관리자는 무료예요.' : fmt(it.price) + ' BP를 사용할까요?'}`, '구매', () => {
     if (!U.admin) { if (U.bp < it.price) return toast('BP가 부족해요.'); U.bp -= it.price; }
@@ -315,7 +387,7 @@ $('diff-list').addEventListener('click', e => { const b = e.target.closest('[dat
 function startAI(d) {
   const types = myDeck();
   if (!types.length) return panel('카드가 없어요', '뽑기에서 카드를 먼저 뽑아주세요.', '확인');
-  battle({ who: U.name, tag: d.name, botName: d.train ? '훈련봇' : `${d.name} 봇`, bot: d.bot, p: d.p, atk: !d.train, dummy: !!d.train, skill: true, shield: true, quit: true, deck: types,
+  battle({ who: U.name, tag: d.name, botName: d.train ? '훈련봇' : `${d.name} 봇`, bot: d.bot, p: d.p, atk: !d.train, dummy: !!d.train, skill: true, shield: true, item: myItem(), quit: true, deck: types,
     hint: () => d.train ? '훈련봇은 공격하지 않아요. 평타 · 스킬 · 교체를 마음껏 연습하고, 다 하면 나가기를 누르세요.' : '전투 시작! 평타로 게이지를 모아 스킬을 쓰세요.',
     win: () => { if (!U.admin) U.bp += d.bp; persist(); panel('승리!', `${d.name} 봇을 쓰러뜨렸어요!\n+${d.bp} BP`, '메뉴로', menu, '다시 하기', () => startAI(d)); },
     lose: () => panel('패배', '카드가 모두 쓰러졌어요.', '다시 도전', () => startAI(d), '메뉴로', menu) });
@@ -374,6 +446,8 @@ function deck() {
   const seen = new Set(), used = U.deck.map(id => U.inv.find(c => c.id === id)).filter(c => c && !seen.has(c.type) && seen.add(c.type));
   U.deck = used.map(c => c.id);
   $('deck-cnt').textContent = `${used.length}/5`;
+  const cur = myItem(), own = hasShield(U); // 아이템 장착
+  $('item-bar').innerHTML = `<span>아이템</span><button class="ichip${cur === 'heal' ? ' on' : ''}" data-item="heal">✚ 힐</button><button class="ichip${cur === 'shield' ? ' on' : ''}${own ? '' : ' locked'}" data-item="shield">🛡 방어막${own ? '' : ' 🔒'}</button>`;
   $('deck-slots').innerHTML = [0, 1, 2, 3, 4].map(i => {
     const c = used[i];
     if (!c) return `<div class="slot5 vacant"><span>${i + 1}</span></div>`;

@@ -326,3 +326,18 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .pillar{position:fixed;top:0;z-index:6;pointer-events:none;border-radius:0 0 10px 10px;background:linear-gradient(180deg,rgba(200,170,255,0),rgba(190,140,255,.85) 70%,#fff);box-shadow:0 0 30px #b58bff,0 0 70px #7a4dff;transform-origin:bottom;animation:pillar .75s ease-out forwards}
 @keyframes pillar{0%{transform:scaleX(.15);opacity:0}15%{transform:scaleX(1.15);opacity:1}100%{transform:scaleX(.3);opacity:0}}
 .active.channel .card{box-shadow:0 0 0 3px #b58bff,0 0 40px #7a4dff}
+
+/* v58: 화면이 길면 스크롤 (전투 화면 제외) — 가운데 정렬은 유지하면서 넘치면 위부터 보이게 */
+.screen:not(#s-game){overflow-y:auto;-webkit-overflow-scrolling:touch}
+.menu{justify-content:flex-start}
+.menu>:first-child{margin-top:auto}.menu>:last-child{margin-bottom:auto}
+.mbtn.big{flex-shrink:0}
+/* 아이템 */
+.shield .ico-heal{display:none;font-size:24px;line-height:1;color:#7cff6b}
+.shield.heal{border-color:#7cff6b;background:rgba(124,255,107,.12)}
+.shield.heal svg{display:none}.shield.heal .ico-heal{display:block}
+.itembar{display:flex;align-items:center;gap:8px;margin:-4px 0 12px;font-size:13px;color:var(--mute)}
+.ichip{padding:7px 12px;font:700 13px Pretendard,sans-serif;color:var(--ink);background:rgba(0,0,0,.35);border:2px solid #3a4c4c;border-radius:16px}
+.ichip.on{color:var(--gold);border-color:var(--gold)}
+.ichip.locked{opacity:.5}
+.pf-no{padding:6px 14px;font:700 14px Pretendard,sans-serif;color:var(--mute);background:rgba(0,0,0,.35);border:1px solid #3a4c4c;border-radius:16px}

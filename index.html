@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=57">
+<link rel="stylesheet" href="style.css?v=58">
 </head>
 <body>
 <main id="app">
@@ -46,7 +46,7 @@
       <button class="mbtn big" id="m-shop">상점</button>
     </div>
     <div class="row"><button class="mbtn" id="m-coll">컬렉션</button><button class="mbtn" id="m-gacha">뽑기하러가기</button></div>
-    <div class="foot"><button class="link" id="m-patch">패치 내역<span class="dot" id="m-dot" hidden></span></button><button class="link" id="m-notice" hidden>공지 쓰기</button><button class="link" id="m-out">로그아웃</button></div>
+    <div class="foot"><button class="link" id="m-patch">패치 내역<span class="dot" id="m-dot" hidden></span></button><button class="link" id="m-notice" hidden>공지 쓰기</button><button class="link" id="m-gift" hidden>보상 지급</button><button class="link" id="m-out">로그아웃</button></div>
   </section>
 
   <section id="s-shop" class="screen" hidden>
@@ -62,7 +62,7 @@
 
   <section id="s-prof" class="screen" hidden>
     <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>프로필</h2></header>
-    <div class="prof"><div id="pf-av"></div><b id="pf-name"></b></div>
+    <div class="prof"><div id="pf-av"></div><b id="pf-name"></b><button class="pf-no" id="pf-no" type="button"></button></div>
     <input type="file" id="pf-file" accept="image/*" hidden>
     <button class="btn" id="pf-up" type="button">사진 올리기</button>
     <button class="btn ghost" id="pf-del" type="button">기본 사진으로</button>
@@ -83,6 +83,7 @@
     <header class="bar"><button class="back" data-go="menu" aria-label="뒤로">‹</button><h2>출격 카드 설정</h2><span id="deck-cnt"></span></header>
     <p class="sub">아래 카드를 누르면 칸에 들어가고, 칸을 누르면 빠져요. 1번 칸 카드가 먼저 나가요.</p>
     <div class="slots5" id="deck-slots"></div>
+    <div class="itembar" id="item-bar"></div>
     <div class="grid" id="deck-grid"></div>
   </section>
 
@@ -133,7 +134,7 @@
         <div class="hp"><div id="chf"></div><div class="shbar" id="chs"></div><span id="cht"></span></div>
         <div class="sp" id="psp"><div id="pspf"></div><span id="pspt"></span></div>
       </div>
-      <div class="side"><button class="shield" id="shield" type="button" aria-label="방어막"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/></svg><b id="shn">3</b></button></div>
+      <div class="side"><button class="shield" id="shield" type="button" aria-label="방어막"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/></svg><span class="ico-heal">✚</span><b id="shn">3</b></button></div>
     </div>
   </section>
 
@@ -155,9 +156,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="game.js?v=57"></script>
-<script src="patches.js?v=38"></script>
-<script src="app.js?v=53"></script>
-<script src="multi.js?v=45"></script>
+<script src="game.js?v=58"></script>
+<script src="patches.js?v=40"></script>
+<script src="app.js?v=58"></script>
+<script src="multi.js?v=58"></script>
 </body>
 </html>
