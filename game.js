@@ -73,7 +73,7 @@ const CARDS = {
     skill: { name: '저주', dmg: 0, cd: 800, cost: 100, hold: 450, curse: { ms: 6500, mult: 1.4 } } }, // 6.5초 동안 상대가 받는 피해 1.4배
   ferrari: { name: '페라리 승현', img: 'ferrari.jpg', rarity: 'usr', hp: 1000,
     basic: { name: '평타', dmg: 22, cd: 500, gain: 7.5 },
-    skill: { name: '슈우우웅!', dmg: 400, cd: 800, cost: 100, hold: 450, nextBonus: 20 } }, // 400 + 다음 평타 한 번 +20
+    skill: { name: '슈우우웅!', dmg: 300, cd: 800, cost: 100, hold: 450, nextBonus: 20 } }, // 300 + 다음 평타 한 번 +20
   // 버프 스킬: 데미지 대신 3초 동안 평타가 20 데미지 · 0.2초마다로 바뀜
   shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 350,
     basic: { name: '평타', dmg: 14, cd: 800, gain: 6.5 },
