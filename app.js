@@ -20,9 +20,9 @@ const DIFFS = [
   { name: '쉬움', info: '입문용', bot: 200, bp: 400, p: { dmg: 5, gap: 1200, gain: 5, sdmg: 40, cost: 100, windup: 1400, shield: 0 } },
   { name: '보통', info: '기본기 연습', bot: 500, bp: 1000, p: { dmg: 7, gap: 900, gain: 5, sdmg: 55, cost: 80, windup: 1100, shield: 0 } },
   { name: '어려움', info: '빠르고 아픔', bot: 1000, bp: 4000, p: { dmg: 12, gap: 800, gain: 5, sdmg: 80, cost: 65, windup: 900, shield: 0 } },
-  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 12000, p: { dmg: 25, gap: 650, gain: 5, sdmg: 100, cost: 50, windup: 750, shield: 0 } },
+  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 20000, p: { dmg: 25, gap: 650, gain: 5, sdmg: 100, cost: 50, windup: 750, shield: 0 } },
   // 서호모드: 민준급 2장 + 울트라 슈퍼 레어 2장 정도는 있어야 깰 수 있게 맞춤 (봇 체력 × 초당 공격이 그 덱의 체력 × 초당 데미지보다 조금 작게)
-  { name: '서호모드', info: '민준급 2장 + 울트라 2장은 있어야 깰 수 있어요', bot: 6500, bp: 40000, p: { dmg: 32, gap: 650, gain: 5, sdmg: 120, cost: 60, windup: 800, shield: 0 } },
+  { name: '서호모드', info: '민준급 2장 + 울트라 2장은 있어야 깰 수 있어요', bot: 6500, bp: 60000, p: { dmg: 32, gap: 650, gain: 5, sdmg: 120, cost: 60, windup: 800, shield: 0 } },
 ];
 const AUTH_ERR = {
   'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
@@ -377,6 +377,7 @@ $('pf-rn').onclick = () => {
 const ITEMS = [
   { icon: '🎟', name: '뽑기 티켓 1장', price: 500, give: u => { u.tickets += 1; } },
   { icon: '🎟', name: '뽑기 티켓 10장', price: 4800, note: '장당 480 BP', give: u => { u.tickets += 10; } },
+  { icon: '🎟', name: '뽑기 티켓 100장', price: 48000, note: '장당 480 BP', give: u => { u.tickets += 100; } },
   { icon: '✏️', name: '이름변경권 1장', price: 1000, give: u => { u.nt = (u.nt || 0) + 1; } },
   { icon: '🛡', name: '아이템: 방어막', price: 10000, note: '전투에서 힐 대신 장착 · 한 번 사면 계속 사용', owned: u => hasShield(u),
     give: u => addItem(u, 'shield') },

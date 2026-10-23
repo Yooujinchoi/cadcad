@@ -62,7 +62,7 @@ const CARDS = {
     basic: { name: '평타', dmg: 15, cd: 500, gain: 8 },
     skill: { name: '커플공격', dmg: 150, cd: 800, cost: 100, hold: 450, barrier: { amt: 60, step: 5 } } }, // 보호막: 다 사라진 뒤에만 새로 생기고, 생길 때마다 5씩 줄어듦 (60 → 55 → 50 …)
   dark: { name: '어둠의 인도자 김민준', img: 'dark.jpg?v=2', rarity: 't1', hp: 1600, retired: true, // 회수됨: 뽑기에서 안 나옴 (관리자만 보유)
-    basic: { name: '평타', dmg: 40, cd: 400, gain: 10 },
+    basic: { name: '평타', dmg: 40, cd: 200, gain: 10 },
     skill: { name: '그 긴거', dmg: 450, cd: 800, cost: 100, hold: 450, barrier: { amt: 200, step: 0 } }, // 보호막 200: 다 사라진 뒤에만 다시 생김 (크기 그대로)
     lastStand: { name: '최후의 일격', at: 0.1, dmg: 600 } }, // 체력 10% 이하가 되면 자동으로 600 (한 판에 한 번)
   eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1600,
@@ -70,7 +70,10 @@ const CARDS = {
     skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 120, steal: true, cd: 800, cost: 100, hold: 450 } }, // 120 데미지, 준 만큼 체력 흡수
   heukyeom: { name: '흑염룡 김울', img: 'heukyeom.jpg', rarity: 'usr', hp: 950,
     basic: { name: '평타', dmg: 41, cd: 750, gain: 10 },
-    skill: { name: '저주', dmg: 0, cd: 800, cost: 100, hold: 450, curse: { ms: 6500, mult: 1.2 } } }, // 6.5초 동안 상대가 받는 피해 1.2배, 그동안 스킬포인트 안 쌓임
+    skill: { name: '저주', dmg: 0, cd: 800, cost: 100, hold: 450, curse: { ms: 6500, mult: 1.4 } } }, // 6.5초 동안 상대가 받는 피해 1.4배
+  ferrari: { name: '페라리 승현', img: 'ferrari.jpg', rarity: 'usr', hp: 1000,
+    basic: { name: '평타', dmg: 22, cd: 500, gain: 7.5 },
+    skill: { name: '슈우우웅!', dmg: 400, cd: 800, cost: 100, hold: 450, nextBonus: 20 } }, // 400 + 다음 평타 한 번 +20
   // 버프 스킬: 데미지 대신 3초 동안 평타가 20 데미지 · 0.2초마다로 바뀜
   shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 350,
     basic: { name: '평타', dmg: 14, cd: 800, gain: 6.5 },
@@ -94,6 +97,7 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   if (b.skill.heal) s.heal = r(b.skill.heal);
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
   if (b.skill.range) s.range = b.skill.range.map(r);
+  if (b.skill.nextBonus) s.nextBonus = r(b.skill.nextBonus);
   if (b.skill.requiem) s.requiem = { ...b.skill.requiem, bench: r(b.skill.requiem.bench) };
   if (b.skill.barrier) s.barrier = { ...b.skill.barrier, amt: r(b.skill.barrier.amt) };
   CARDS[key] = { ...b, ...(b.lastStand ? { lastStand: { ...b.lastStand, dmg: r(b.lastStand.dmg) } } : {}), variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg), ...(b.basic.lifeHit ? { lifeHit: r(b.basic.lifeHit) } : {}) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
@@ -107,11 +111,12 @@ const rageOn = c => { const d = CARDS[c.type]; return !!d.basic.rage && c.hp > 0
 const basicOf = c => {
   const d = CARDS[c.type], b = d.skill.buff;
   if (b && buffOn(c)) return { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 };
-  const r = rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
+  let r = rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
+  if (c.nextBonus) r = { ...r, dmg: r.dmg + c.nextBonus }; // 슈우우웅! 다음 평타 한 번 보너스
   return c.noGainUntil > performance.now() ? { ...r, gain: 0 } : r; // 저주를 건 동안은 스킬포인트 안 쌓임
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.curse ? `${d.skill.curse.ms / 1000}초 동안 상대가 받는 피해 ${d.skill.curse.mult}배 (그동안 스킬포인트 안 쌓임)` : d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ` · 상대 대기 카드에는 ${d.skill.requiem.bench} (방어막으로 막으면 전부 무효)` : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
+const skillDesc = d => d.skill.curse ? `${d.skill.curse.ms / 1000}초 동안 상대가 받는 피해 ${d.skill.curse.mult}배` : d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ` · 상대 대기 카드에는 ${d.skill.requiem.bench} (방어막으로 막으면 전부 무효)` : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.nextBonus ? ` · 다음 평타 한 번 +${d.skill.nextBonus}` : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -410,12 +415,14 @@ function attack(kind) {
   const c = S.cards[S.cur], big = kind !== 'basic';
   let a = kind === 'basic' ? basicOf(c) : CARDS[c.type][kind];
   if (!a) return;
+  if (kind === 'basic' && c.nextBonus) c.nextBonus = 0; // 보너스는 이번 평타에서 사용
   if (big) { if (c.en < a.cost) return; c.en = 0; renderPlayer(); } // 스킬을 쓰면 스킬포인트 전부 소모
   if (a.range) a = { ...a, dmg: a.range[0] + Math.floor(Math.random() * (a.range[1] - a.range[0] + 1)) };
   if (big && a.buff) return startBuff(c, a);
   if (big && a.heal) heal(c, a.heal);
   if (big && a.barrier) grantBarrier(c, a.barrier);
   if (big && a.vamp) startVamp(c, a);
+  if (big && a.nextBonus) { c.nextBonus = a.nextBonus; renderPlayer(); }
   if (big && a.requiem) return castRequiem(c, a);
   if (big && a.curse) return castCurse(c, a);
   S.busy = true;
@@ -574,7 +581,6 @@ function foeRequiem(d, bd) { // 상대가 쓸 때 (멀티): 지금 카드 d, 대
 // 저주(흑염룡 김울): 상대가 받는 피해 증가
 function castCurse(c, a) {
   const now = performance.now(), t = S.tok;
-  c.noGainUntil = now + a.curse.ms;
   S.busy = true; later(() => { S.busy = false; }, a.cd);
   card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
   say(`${a.name}! ${a.curse.ms / 1000}초 동안 상대가 받는 피해 ${a.curse.mult}배`);
