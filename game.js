@@ -1,5 +1,6 @@
 /* 전투 엔진 + 튜토리얼 (계정/메뉴는 app.js) */
 const $ = id => document.getElementById(id);
+const GW_MS = 7000, GW_MULT = 0.6; // 치감: 7초 동안 상대 회복 40% 감소
 const SHIELD_MS = 1200, SWAP_MS = 2500, HEAL_AMT = 150, HEAL_USES = 2, HEAL_CD = 20000; // 힐: 150 회복, 한 판에 2번, 재사용 20초
 
 // 프로필 사진(128px JPEG data URL)만 허용 → 다른 사람이 보낸 값도 안전하게 표시
@@ -67,6 +68,9 @@ const CARDS = {
   eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1600,
     basic: { name: '평타', dmg: 27, cd: 600, gain: 8 },
     skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 120, steal: true, cd: 800, cost: 100, hold: 450 } }, // 120 데미지, 준 만큼 체력 흡수
+  heukyeom: { name: '흑염룡 김울', img: 'heukyeom.jpg', rarity: 'usr', hp: 950,
+    basic: { name: '평타', dmg: 41, cd: 750, gain: 10 },
+    skill: { name: '저주', dmg: 0, cd: 800, cost: 100, hold: 450, curse: { ms: 6500, mult: 1.2 } } }, // 6.5초 동안 상대가 받는 피해 1.2배, 그동안 스킬포인트 안 쌓임
   // 버프 스킬: 데미지 대신 3초 동안 평타가 20 데미지 · 0.2초마다로 바뀜
   shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 350,
     basic: { name: '평타', dmg: 14, cd: 800, gain: 6.5 },
@@ -103,10 +107,11 @@ const rageOn = c => { const d = CARDS[c.type]; return !!d.basic.rage && c.hp > 0
 const basicOf = c => {
   const d = CARDS[c.type], b = d.skill.buff;
   if (b && buffOn(c)) return { ...d.basic, dmg: b.dmg, cd: b.cd, gain: 0 };
-  return rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
+  const r = rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
+  return c.noGainUntil > performance.now() ? { ...r, gain: 0 } : r; // 저주를 건 동안은 스킬포인트 안 쌓임
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ` · 상대 대기 카드에는 ${d.skill.requiem.bench} (방어막으로 막으면 전부 무효)` : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
+const skillDesc = d => d.skill.curse ? `${d.skill.curse.ms / 1000}초 동안 상대가 받는 피해 ${d.skill.curse.mult}배 (그동안 스킬포인트 안 쌓임)` : d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ` · 상대 대기 카드에는 ${d.skill.requiem.bench} (방어막으로 막으면 전부 무효)` : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -178,7 +183,7 @@ function renderPlayer() {
   const rg = rageOn(c); $('active').classList.toggle('rage', rg);
   if (rg && !c.raged && S.ready) say('체력이 절반 이하! 공격 속도가 빨라졌어요!');
   c.raged = rg;
-  $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.buff ? '⚡' : d.skill.range ? d.skill.range.join('~') : d.skill.dmg; $('d2').classList.toggle('wide', !!d.skill.range);
+  $('n2').textContent = d.skill.name; $('d2').textContent = d.skill.curse ? '×' + d.skill.curse.mult : d.skill.buff ? '⚡' : d.skill.range ? d.skill.range.join('~') : d.skill.dmg; $('d2').classList.toggle('wide', !!(d.skill.range || d.skill.curse));
   const s2 = d.skill2, b2 = $('sk2btn'); // 두 번째 스킬 버튼 (개씹빡친김울)
   b2.hidden = !s2 || !S.cfg.skill;
   if (s2) { b2.classList.toggle('ready', c.en >= s2.cost); $('sk2c').textContent = s2.cost; }
@@ -192,9 +197,15 @@ function renderPlayer() {
     `<div class="mini${x.hp <= 0 ? ' dead' : ''}" data-i="${i}" style="--rc:${rar(x.type).color}" role="button" aria-label="카드 교체"><img src="${CARDS[x.type].img}" alt=""><div class="hp"><div style="width:${pct(x.hp, CARDS[x.type].hp)}"></div></div></div>`).join('');
   if (S.cfg.sync) S.cfg.sync();
 }
+const ITEM_ICON = { heal: '✚', gw: '⊘', cleanse: '✦' }; // 방어막은 방패 그림
 function renderShield() {
-  $('shn').textContent = S.shields; $('shield').disabled = S.shields <= 0;
-  $('shield').classList.toggle('heal', S.item === 'heal'); $('shield').classList.toggle('cool', S.item === 'heal' && performance.now() < S.healAt); $('shield').setAttribute('aria-label', S.item === 'heal' ? '힐' : '방어막');
+  const b = $('shield'), it = S.item;
+  $('shn').textContent = S.shields; b.disabled = S.shields <= 0;
+  ['heal', 'gw', 'cleanse'].forEach(k => b.classList.toggle(k, it === k));
+  b.classList.toggle('alt', it !== 'shield');
+  b.querySelector('.ico-heal').textContent = ITEM_ICON[it] || '';
+  b.classList.toggle('cool', it === 'heal' && performance.now() < S.healAt);
+  b.setAttribute('aria-label', { heal: '힐', shield: '방어막', gw: '치감', cleanse: '정화' }[it]);
 }
 
 function floatTxt(parent, text, cls) {
@@ -219,7 +230,8 @@ function battle(cfg) {
   Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0, item: cfg.item || 'shield', myBlk: 0, dmgTotal: 0, dmgStart: 0,
     bot: { hp: cfg.bot, max: cfg.bot, en: 0, sh: 3, cost: cfg.p.cost || 100 },
     cards: types.map(t => ({ type: t, hp: CARDS[t].hp, en: 0 })) });
-  if (S.item === 'heal') S.shields = HEAL_USES;
+  S.shields = { heal: HEAL_USES, shield: 3, gw: 2, cleanse: 2 }[S.item] || 3;
+  S.gwUntil = 0; S.curseUntil = 0; S.poisonUntil = 0; S.poisonGen = (S.poisonGen || 0) + 1;
   S.healAt = 0;
   $('who').textContent = cfg.who;
   $('stg').textContent = cfg.tag;
@@ -287,6 +299,8 @@ function foeSkill(d, windup, done, drain, psn) {
 function foeAttack(e) {
   if (!S.ready) return;
   if (e.k === 'requiem') return foeRequiem(e.d, e.x);
+  if (e.k === 'curse') return foeCurse(e.d, e.x);
+  if (e.k === 'gw') return foeGW(e.x);
   if (e.k === 'poison') foeSkill(e.d, S.p.windup, null, 0, e.x);
   else if (e.k === 'skill') foeSkill(e.d, S.p.windup, null, e.x);
   else foeBasic(e.d);
@@ -301,6 +315,7 @@ function botAct() {
 function hurtPlayer(d, big) {
   if (!S.ready) return;
   const c = S.cards[S.cur];
+  if (performance.now() < S.curseUntil) d = Math.round(d * (S.curseMult || 1.2)); // 저주: 받는 피해 증가
   let left = d;
   if (c.barrier > 0) { const ab = Math.min(c.barrier, left); c.barrier -= ab; left -= ab; } // 보호막이 먼저 막음
   c.hp = Math.max(0, c.hp - left);
@@ -345,6 +360,22 @@ function onTap() {
 }
 
 $('shield').addEventListener('click', () => {
+  if (S.item === 'gw') { // 치감: 멀티에서 상대 회복 40% 감소 7초
+    if (!S.ready || S.shields <= 0) return;
+    if (!S.cfg.pvp) return say('봇은 회복하지 않아서 치감은 멀티에서 써요.');
+    S.shields--; renderShield(); S.cfg.pvp.send('gw', 0, GW_MS / 1000);
+    floatTxt($('enemy'), '치유 감소', 'dmg sp'); say(`치감! ${GW_MS / 1000}초 동안 상대 회복 40% 감소`);
+    return;
+  }
+  if (S.item === 'cleanse') { // 정화: 내 카드의 나쁜 효과 즉시 제거
+    if (!S.ready || S.shields <= 0) return;
+    const now = performance.now();
+    if (!(now < S.gwUntil || now < S.curseUntil || now < S.poisonUntil)) return say('없앨 나쁜 효과가 없어요.');
+    S.shields--; S.gwUntil = 0; S.curseUntil = 0; S.poisonUntil = 0; S.poisonGen++;
+    $('active').classList.remove('cursed', 'gwd');
+    floatTxt($('active'), '정화!', 'dmg me buff'); say('정화! 나쁜 효과가 모두 사라졌어요.'); renderShield();
+    return;
+  }
   if (S.item === 'heal') { // 힐 아이템: 150 회복, 한 판에 2번, 재사용 20초
     if (!S.ready || S.shields <= 0) return;
     const now = performance.now();
@@ -386,6 +417,7 @@ function attack(kind) {
   if (big && a.barrier) grantBarrier(c, a.barrier);
   if (big && a.vamp) startVamp(c, a);
   if (big && a.requiem) return castRequiem(c, a);
+  if (big && a.curse) return castCurse(c, a);
   S.busy = true;
   card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
 
@@ -417,6 +449,7 @@ function attack(kind) {
 }
 
 function heal(c, n) { // 체력 회복 (최대 체력까지)
+  if (performance.now() < S.gwUntil) n = Math.round(n * GW_MULT); // 치감
   const got = Math.min(n, CARDS[c.type].hp - c.hp);
   if (got <= 0) return;
   c.hp += got;
@@ -450,6 +483,7 @@ function poisonBot(a) {
 }
 function dmgBot(d) {
   const b = S.bot;
+  if (b.curseUntil > performance.now()) d = Math.round(d * b.curseMult);
   if (S.cfg.dummy) { S.dmgTotal += d; S.dmgStart = S.dmgStart || performance.now(); } else b.hp = Math.max(0, b.hp - d);
   renderBot();
   floatTxt($('enemy'), '-' + d, 'dmg psn');
@@ -458,7 +492,9 @@ function dmgBot(d) {
 function poisonMe(d, sec) {
   sec = Math.min(10, Math.max(1, Math.floor(+sec) || 1));
   say('독에 걸렸어요!');
-  const tick = () => { if (sec-- <= 0) return; hurtPlayer(d, false); later(tick, 1000); };
+  S.poisonUntil = Math.max(S.poisonUntil || 0, performance.now() + sec * 1000);
+  const g = S.poisonGen;
+  const tick = () => { if (g !== S.poisonGen || sec-- <= 0) return; hurtPlayer(d, false); later(tick, 1000); };
   later(tick, 1000);
 }
 
@@ -535,6 +571,40 @@ function foeRequiem(d, bd) { // 상대가 쓸 때 (멀티): 지금 카드 d, 대
   }, REQ_MS);
 }
 
+// 저주(흑염룡 김울): 상대가 받는 피해 증가
+function castCurse(c, a) {
+  const now = performance.now(), t = S.tok;
+  c.noGainUntil = now + a.curse.ms;
+  S.busy = true; later(() => { S.busy = false; }, a.cd);
+  card.className = 'card'; void card.offsetWidth; card.className = 'card cast';
+  say(`${a.name}! ${a.curse.ms / 1000}초 동안 상대가 받는 피해 ${a.curse.mult}배`);
+  if (S.cfg.pvp) { S.cfg.pvp.send('curse', Math.round(a.curse.mult * 100), a.curse.ms / 1000); renderPlayer(); return; }
+  S.bot.curseUntil = now + a.curse.ms; S.bot.curseMult = a.curse.mult;
+  $('bot').classList.add('cursed'); floatTxt($('enemy'), '저주', 'dmg sp');
+  setTimeout(() => { if (S.tok === t) $('bot').classList.remove('cursed'); }, a.curse.ms);
+  renderPlayer();
+}
+function foeCurse(m, sec) { // 멀티: 상대가 나에게 저주 (방어막으로 막을 수 있음)
+  m = Math.min(2, Math.max(1, (+m || 120) / 100)); sec = Math.min(10, Math.max(1, +sec || 6.5));
+  $('bot').classList.add('windup');
+  say(S.item === 'shield' ? '상대가 저주를 걸려고 해요! 방어막을 펼치세요!' : '상대가 저주를 걸려고 해요!');
+  later(() => {
+    $('bot').classList.remove('windup');
+    if (performance.now() < S.shieldUntil) { S.myBlk++; floatTxt($('active'), '방어!', 'dmg me blk'); say('저주를 막았어요!'); renderPlayer(); return; }
+    S.curseUntil = performance.now() + sec * 1000; S.curseMult = m;
+    $('active').classList.add('cursed'); floatTxt($('active'), '저주', 'dmg me sp');
+    say(`저주에 걸렸어요! ${sec}초 동안 받는 피해 ${m}배`);
+    const t = S.tok; setTimeout(() => { if (S.tok === t && performance.now() >= S.curseUntil) $('active').classList.remove('cursed'); }, sec * 1000 + 30);
+  }, S.p.windup);
+}
+function foeGW(sec) { // 멀티: 상대가 나에게 치감
+  sec = Math.min(10, Math.max(1, +sec || 7));
+  S.gwUntil = performance.now() + sec * 1000;
+  $('active').classList.add('gwd'); floatTxt($('active'), '치유 감소', 'dmg me sp');
+  say(`치감에 걸렸어요! ${sec}초 동안 회복 40% 감소`);
+  const t = S.tok; setTimeout(() => { if (S.tok === t && performance.now() >= S.gwUntil) $('active').classList.remove('gwd'); }, sec * 1000 + 30);
+}
+
 function grantBarrier(c, b) { // 보호막(러브버그): 남아 있으면 안 생김, 다 사라진 뒤에만 새로 (300 → 280 → 260 …)
   if (c.barrier > 0) return say(`보호막이 ${c.barrier} 남아 있어서 새로 생기지 않았어요.`);
   if (c.barrierNext === undefined) c.barrierNext = b.amt;
@@ -562,6 +632,7 @@ function hit(a, big, c, blocked) {
   const b = S.bot, bot = $('bot');
   if (blocked) { floatTxt($('enemy'), '방어!', 'dmg blk'); say('봇이 방어막으로 스킬을 막았어요!'); return; }
   if (a.poison) return poisonBot(a);
+  if (S.bot.curseUntil > performance.now()) a = { ...a, dmg: Math.round(a.dmg * S.bot.curseMult) };
   if (S.cfg.dummy) { S.dmgTotal += a.dmg; S.dmgStart = S.dmgStart || performance.now(); }
   else b.hp = Math.max(0, b.hp - a.dmg);
   renderBot();

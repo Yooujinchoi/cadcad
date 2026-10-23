@@ -347,3 +347,10 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .tile.unowned .cnt{color:var(--mute)}
 .shield.cool{opacity:.4}
 .panel{max-height:88vh;overflow-y:auto}
+
+/* v63: 아이템 치감·정화, 저주·치감 상태 표시 */
+.shield.alt svg{display:none}.shield.alt .ico-heal{display:block}
+.shield.gw{border-color:#ff7a8a;background:rgba(255,122,138,.12)}.shield.gw .ico-heal{color:#ff7a8a}
+.shield.cleanse{border-color:#fff3a6;background:rgba(255,243,166,.12)}.shield.cleanse .ico-heal{color:#fff3a6}
+.bot.cursed,.active.cursed .card{box-shadow:0 0 0 3px #9b5cff,0 0 26px #9b5cff}
+.active.gwd .hp>div:first-child{filter:saturate(.3) brightness(.8)}

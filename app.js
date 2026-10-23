@@ -133,11 +133,14 @@ function recalls() {
   return got;
 }
 // ── 아이템: 기본은 힐, 상점에서 방어막을 사면 장착 가능 ──
-const hasShield = u => !!(u.admin || (u.items || []).includes('shield'));
-const myItem = () => U.item === 'shield' && hasShield(U) ? 'shield' : 'heal';
+const hasItem = (u, k) => k === 'heal' || !!(u.admin || (u.items || []).includes(k));
+const hasShield = u => hasItem(u, 'shield');
+const myItem = () => U.item && hasItem(U, U.item) ? U.item : 'heal';
+const ITEM_LIST = [['heal', '✚ 힐'], ['shield', '🛡 방어막'], ['gw', '⊘ 치감'], ['cleanse', '✦ 정화']];
+const addItem = (u, k) => { u.items = [...new Set([...(u.items || []), k])]; u.item = k; };
 $('item-bar').addEventListener('click', e => {
   const b = e.target.closest('[data-item]'); if (!b) return;
-  if (b.dataset.item === 'shield' && !hasShield(U)) return panel('아이템: 방어막', '상점에서 10,000 BP에 살 수 있어요.\n한 번 사면 계속 쓸 수 있어요.', '상점으로', shop, '닫기');
+  if (!hasItem(U, b.dataset.item)) return panel('잠긴 아이템', '상점에서 살 수 있어요.\n한 번 사면 계속 쓸 수 있어요.', '상점으로', shop, '닫기');
   U.item = b.dataset.item; persist(); deck();
 });
 
@@ -376,7 +379,9 @@ const ITEMS = [
   { icon: '🎟', name: '뽑기 티켓 10장', price: 4800, note: '장당 480 BP', give: u => { u.tickets += 10; } },
   { icon: '✏️', name: '이름변경권 1장', price: 1000, give: u => { u.nt = (u.nt || 0) + 1; } },
   { icon: '🛡', name: '아이템: 방어막', price: 10000, note: '전투에서 힐 대신 장착 · 한 번 사면 계속 사용', owned: u => hasShield(u),
-    give: u => { u.items = [...new Set([...(u.items || []), 'shield'])]; u.item = 'shield'; } },
+    give: u => addItem(u, 'shield') },
+  { icon: '⊘', name: '아이템: 치감', price: 20000, note: '멀티에서 7초 동안 상대 회복 40% 감소 · 한 판에 2번 · 한 번 사면 계속', owned: u => hasItem(u, 'gw'), give: u => addItem(u, 'gw') },
+  { icon: '✦', name: '아이템: 정화', price: 20000, note: '내 카드의 독 · 저주 · 치감을 바로 없앰 · 한 판에 2번 · 한 번 사면 계속', owned: u => hasItem(u, 'cleanse'), give: u => addItem(u, 'cleanse') },
 ];
 function shop() {
   $('sh-wal').textContent = U.admin ? 'BP ∞ · 뽑기권 ∞ · 변경권 ∞' : `BP ${fmt(U.bp)} · 뽑기권 ${U.tickets} · 변경권 ${U.nt || 0}`;
@@ -491,8 +496,8 @@ function deck() {
   const seen = new Set(), used = U.deck.map(id => U.inv.find(c => c.id === id)).filter(c => c && !seen.has(c.type) && seen.add(c.type));
   U.deck = used.map(c => c.id);
   $('deck-cnt').textContent = `${used.length}/5`;
-  const cur = myItem(), own = hasShield(U); // 아이템 장착
-  $('item-bar').innerHTML = `<span>아이템</span><button class="ichip${cur === 'heal' ? ' on' : ''}" data-item="heal">✚ 힐</button><button class="ichip${cur === 'shield' ? ' on' : ''}${own ? '' : ' locked'}" data-item="shield">🛡 방어막${own ? '' : ' 🔒'}</button>`;
+  const cur = myItem(); // 아이템 장착
+  $('item-bar').innerHTML = '<span>아이템</span>' + ITEM_LIST.map(([k, label]) => `<button class="ichip${cur === k ? ' on' : ''}${hasItem(U, k) ? '' : ' locked'}" data-item="${k}">${label}${hasItem(U, k) ? '' : ' 🔒'}</button>`).join('');
   $('deck-slots').innerHTML = [0, 1, 2, 3, 4].map(i => {
     const c = used[i];
     if (!c) return `<div class="slot5 vacant"><span>${i + 1}</span></div>`;
