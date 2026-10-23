@@ -63,7 +63,7 @@ const CARDS = {
     lastStand: { name: '최후의 일격', at: 0.1, dmg: 600 } }, // 체력 10% 이하가 되면 자동으로 600 (한 판에 한 번)
   eater: { name: '잘처먹는 김민준', img: 'eater.jpg', rarity: 'minjun', hp: 1600,
     basic: { name: '평타', dmg: 27, cd: 600, gain: 8 },
-    skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 76, range: [51, 101], steal: true, cd: 800, cost: 100, hold: 450 } }, // 51~101 랜덤 데미지, 준 만큼 체력 흡수
+    skill: { name: '네가 사는 거라면 나도 끼지~', dmg: 120, steal: true, cd: 800, cost: 100, hold: 450 } }, // 120 데미지, 준 만큼 체력 흡수
   // 버프 스킬: 데미지 대신 3초 동안 평타가 20 데미지 · 0.2초마다로 바뀜
   shinan: { name: '신난 김울', img: 'shinan.jpg', rarity: 'rare', hp: 350,
     basic: { name: '평타', dmg: 14, cd: 800, gain: 6.5 },
