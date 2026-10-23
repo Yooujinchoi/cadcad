@@ -50,7 +50,7 @@ const CARDS = {
     skill: { name: '꿈나라여행', dmg: 280, cd: 800, cost: 100, hold: 450, heal: 60 } }, // 스킬 사용 시 체력 60 회복
   lolboy: { name: '롤대남 서호', img: 'lolboy.jpg', rarity: 'usr', hp: 900,
     basic: { name: '평타', dmg: 20, cd: 500, gain: 8 },
-    skill: { name: '진혼곡', dmg: 140, cd: 800, cost: 100, hold: 450, requiem: true } }, // 상대 대기 카드까지 전부 140 (방어막으로 막으면 전부 무효)
+    skill: { name: '진혼곡', dmg: 210, cd: 800, cost: 100, hold: 450, requiem: { bench: 110 } } }, // 지금 카드 210, 대기 카드 110 (방어막으로 막으면 전부 무효)
   seoho: { name: '낚시꾼 서호', img: 'seoho.jpg', rarity: 'sr', hp: 500,
     basic: { name: '평타', dmg: 20, cd: 500, gain: 9 },
     skill: { name: '월척이다', dmg: 170, cd: 800, cost: 90, hold: 450, drain: 10 } }, // 맞히면 상대 스킬포인트 -10 (상대가 스킬 준비 중이면 무효)
@@ -90,6 +90,7 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   if (b.skill.heal) s.heal = r(b.skill.heal);
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
   if (b.skill.range) s.range = b.skill.range.map(r);
+  if (b.skill.requiem) s.requiem = { ...b.skill.requiem, bench: r(b.skill.requiem.bench) };
   if (b.skill.barrier) s.barrier = { ...b.skill.barrier, amt: r(b.skill.barrier.amt) };
   CARDS[key] = { ...b, ...(b.lastStand ? { lastStand: { ...b.lastStand, dmg: r(b.lastStand.dmg) } } : {}), variant: true, lv, hp: r(b.hp), basic: { ...b.basic, dmg: r(b.basic.dmg), ...(b.basic.lifeHit ? { lifeHit: r(b.basic.lifeHit) } : {}) }, skill: s, ...(b.skill2 ? { skill2: { ...b.skill2, dmg: r(b.skill2.dmg) } } : {}) };
   return key;
@@ -105,7 +106,7 @@ const basicOf = c => {
   return rageOn(c) ? { ...d.basic, cd: d.basic.rage.cd } : d.basic;
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ' · 상대 대기 카드까지 전부 (방어막으로 막으면 전부 무효)' : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
+const skillDesc = d => d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ` · 상대 대기 카드에는 ${d.skill.requiem.bench} (방어막으로 막으면 전부 무효)` : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -285,7 +286,7 @@ function foeSkill(d, windup, done, drain, psn) {
 }
 function foeAttack(e) {
   if (!S.ready) return;
-  if (e.k === 'requiem') return foeRequiem(e.d);
+  if (e.k === 'requiem') return foeRequiem(e.d, e.x);
   if (e.k === 'poison') foeSkill(e.d, S.p.windup, null, 0, e.x);
   else if (e.k === 'skill') foeSkill(e.d, S.p.windup, null, e.x);
   else foeBasic(e.d);
@@ -505,15 +506,16 @@ function pillars(els) {
 function castRequiem(c, a) { // 내가 쓸 때
   S.busy = true; later(() => { S.busy = false; }, REQ_MS + a.cd);
   $('active').classList.add('channel'); veil(true);
-  say(`${a.name}… 상대 카드 전부에게 ${a.dmg}!`);
-  if (S.cfg.pvp) S.cfg.pvp.send('requiem', a.dmg, 0);
+  say(`${a.name}… 지금 카드 ${a.dmg}, 대기 카드 ${a.requiem.bench}!`);
+  if (S.cfg.pvp) S.cfg.pvp.send('requiem', a.dmg, a.requiem.bench);
   later(() => {
     $('active').classList.remove('channel'); veil(false);
     pillars([$('bot')]);
     if (!S.cfg.pvp) hit({ name: a.name, dmg: a.dmg }, true, c, false); // 봇은 카드가 하나라 한 번만
   }, REQ_MS);
 }
-function foeRequiem(d) { // 상대가 쓸 때 (멀티)
+function foeRequiem(d, bd) { // 상대가 쓸 때 (멀티): 지금 카드 d, 대기 카드 bd
+  bd = bd > 0 ? bd : d;
   $('bot').classList.add('windup'); veil(true);
   say(S.item === 'shield' ? '상대가 진혼곡을 부르고 있어요! 방어막을 펼치세요!' : '상대가 진혼곡을 부르고 있어요!');
   later(() => {
@@ -524,7 +526,7 @@ function foeRequiem(d) { // 상대가 쓸 때 (멀티)
     pillars([card, ...document.querySelectorAll('#bench .mini:not(.dead)')]);
     S.cards.forEach((x, i) => { // 대기 카드들 먼저
       if (i === S.cur || x.hp <= 0) return;
-      let left = d;
+      let left = bd;
       if (x.barrier > 0) { const ab = Math.min(x.barrier, left); x.barrier -= ab; left -= ab; }
       x.hp = Math.max(0, x.hp - left);
     });

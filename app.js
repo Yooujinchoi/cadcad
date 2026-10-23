@@ -22,7 +22,7 @@ const DIFFS = [
   { name: '어려움', info: '빠르고 아픔', bot: 1000, bp: 4000, p: { dmg: 12, gap: 800, gain: 5, sdmg: 80, cost: 65, windup: 900, shield: 0 } },
   { name: '헬모드', info: '각오하세요', bot: 5000, bp: 12000, p: { dmg: 25, gap: 650, gain: 5, sdmg: 100, cost: 50, windup: 750, shield: 0 } },
   // 서호모드: 민준급 2장 + 울트라 슈퍼 레어 2장 정도는 있어야 깰 수 있게 맞춤 (봇 체력 × 초당 공격이 그 덱의 체력 × 초당 데미지보다 조금 작게)
-  { name: '서호모드', info: '민준급 2장 + 울트라 2장은 있어야 깰 수 있어요', bot: 6500, bp: 25000, p: { dmg: 32, gap: 650, gain: 5, sdmg: 120, cost: 60, windup: 800, shield: 0 } },
+  { name: '서호모드', info: '민준급 2장 + 울트라 2장은 있어야 깰 수 있어요', bot: 6500, bp: 40000, p: { dmg: 32, gap: 650, gain: 5, sdmg: 120, cost: 60, windup: 800, shield: 0 } },
 ];
 const AUTH_ERR = {
   'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
@@ -222,18 +222,18 @@ function dex() {
     .sort((a, b) => rar(b).rank - rar(a).rank || a.localeCompare(b));
   const has = k => U.inv.some(c => c.type === k);
   $('dex-cnt').textContent = `${keys.filter(has).length}/${keys.length}종 보유`;
-  $('dex-grid').innerHTML = keys.map(k => tileEl(k, has(k) ? `Lv.${lvOf(k)}` : '미보유', has(k) ? '' : ' unowned')).join('');
+  $('dex-grid').innerHTML = keys.map(k => tileEl(k, has(k) ? '보유' : '미보유', has(k) ? '' : ' unowned')).join('');
   show('s-dex');
 }
 $('coll-dex').onclick = dex;
 $('dex-back').onclick = () => coll();
 $('dex-grid').addEventListener('click', e => {
   const b = e.target.closest('[data-t]'); if (!b) return;
-  const k = b.dataset.t, d = CARDS[k], top = CARDS[lvKey(k, LV_MAX)], own = U.inv.some(c => c.type === k);
-  const txt = `등급 ${rar(k).name}${own ? ` · 보유 중 (Lv.${lvOf(k)})` : ' · 미보유'}\n체력 ${d.hp}\n${d.basic.name}: ${basicDesc(d)} (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)`
+  const k = b.dataset.t, d = CARDS[k], own = U.inv.some(c => c.type === k); // 도감은 Lv.1 기준
+  const txt = `등급 ${rar(k).name} · ${own ? '보유 중' : '미보유'}\n(Lv.1 기준 능력치)\n체력 ${d.hp}\n${d.basic.name}: ${basicDesc(d)} (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)`
     + (d.skill2 ? `\n${d.skill2.name}: 독 ${d.skill2.dmg} × ${d.skill2.poison.sec}초 (스킬포인트 ${d.skill2.cost}부터)` : '')
     + (d.lastStand ? `\n${d.lastStand.name}: 체력 ${d.lastStand.at * 100}% 이하가 되면 자동으로 ${d.lastStand.dmg}` : '')
-    + `\n\n최대 Lv.${LV_MAX}: 체력 ${top.hp} · 평타 ${top.basic.dmg}${top.skill.dmg ? ` · 스킬 ${top.skill.dmg}` : ''}`;
+    + '';
   panel(d.name, txt, '닫기', null, null, null, d.img);
 });
 
