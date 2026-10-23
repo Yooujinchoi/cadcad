@@ -1,6 +1,6 @@
 /* 전투 엔진 + 튜토리얼 (계정/메뉴는 app.js) */
 const $ = id => document.getElementById(id);
-const SHIELD_MS = 1200, SWAP_MS = 2500, HEAL_PCT = 0.2; // 힐 아이템: 지금 카드 최대 체력의 20% 회복
+const SHIELD_MS = 1200, SWAP_MS = 2500, HEAL_AMT = 150, HEAL_USES = 2, HEAL_CD = 20000; // 힐: 150 회복, 한 판에 2번, 재사용 20초
 
 // 프로필 사진(128px JPEG data URL)만 허용 → 다른 사람이 보낸 값도 안전하게 표시
 const safePhoto = p => typeof p === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,60000}$/.test(p) ? p : '';
@@ -193,7 +193,7 @@ function renderPlayer() {
 }
 function renderShield() {
   $('shn').textContent = S.shields; $('shield').disabled = S.shields <= 0;
-  $('shield').classList.toggle('heal', S.item === 'heal'); $('shield').setAttribute('aria-label', S.item === 'heal' ? '힐' : '방어막');
+  $('shield').classList.toggle('heal', S.item === 'heal'); $('shield').classList.toggle('cool', S.item === 'heal' && performance.now() < S.healAt); $('shield').setAttribute('aria-label', S.item === 'heal' ? '힐' : '방어막');
 }
 
 function floatTxt(parent, text, cls) {
@@ -218,6 +218,8 @@ function battle(cfg) {
   Object.assign(S, { cfg, p: cfg.p, ready: false, busy: false, cur: 0, shields: 3, shieldUntil: 0, swapUntil: 0, item: cfg.item || 'shield', myBlk: 0, dmgTotal: 0, dmgStart: 0,
     bot: { hp: cfg.bot, max: cfg.bot, en: 0, sh: 3, cost: cfg.p.cost || 100 },
     cards: types.map(t => ({ type: t, hp: CARDS[t].hp, en: 0 })) });
+  if (S.item === 'heal') S.shields = HEAL_USES;
+  S.healAt = 0;
   $('who').textContent = cfg.who;
   $('stg').textContent = cfg.tag;
   $('bname').textContent = cfg.botName;
@@ -342,11 +344,15 @@ function onTap() {
 }
 
 $('shield').addEventListener('click', () => {
-  if (S.item === 'heal') { // 힐 아이템 (한 판에 3번)
+  if (S.item === 'heal') { // 힐 아이템: 150 회복, 한 판에 2번, 재사용 20초
     if (!S.ready || S.shields <= 0) return;
+    const now = performance.now();
+    if (now < S.healAt) return say(`힐 재사용까지 ${Math.ceil((S.healAt - now) / 1000)}초 남았어요.`);
     const c = S.cards[S.cur], max = CARDS[c.type].hp;
     if (c.hp >= max) return say('체력이 가득 차 있어요.');
-    S.shields--; heal(c, Math.round(max * HEAL_PCT)); say('힐! 체력을 회복했어요.'); renderShield(); return;
+    S.shields--; S.healAt = now + HEAL_CD; heal(c, HEAL_AMT); say(`힐! 체력 +${HEAL_AMT}`); renderShield();
+    const t = S.tok; setTimeout(() => { if (S.tok === t) renderShield(); }, HEAL_CD + 50);
+    return;
   }
   const now = performance.now();
   if (!S.ready || S.shields <= 0 || now < S.shieldUntil) return;

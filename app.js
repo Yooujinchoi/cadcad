@@ -11,6 +11,7 @@ firebase.initializeApp({
 const auth = firebase.auth(), db = firebase.firestore();
 const ADMIN_EMAIL = 'yooujin_choi@kimul.app'; // 아이디 Yooujin_choi 로 가입한 계정이 관리자
 const mail = id => `${id}@kimul.app`;
+const ADMIN_NO = '00000000'; // 관리자 고유 번호 (일반 계정은 10000000~99999999)
 const uid = () => auth.currentUser.uid;
 const NAME_MAX = 13;
 const DIFFS = [
@@ -19,7 +20,9 @@ const DIFFS = [
   { name: '쉬움', info: '입문용', bot: 200, bp: 400, p: { dmg: 5, gap: 1200, gain: 5, sdmg: 40, cost: 100, windup: 1400, shield: 0 } },
   { name: '보통', info: '기본기 연습', bot: 500, bp: 1000, p: { dmg: 7, gap: 900, gain: 5, sdmg: 55, cost: 80, windup: 1100, shield: 0 } },
   { name: '어려움', info: '빠르고 아픔', bot: 1000, bp: 4000, p: { dmg: 12, gap: 800, gain: 5, sdmg: 80, cost: 65, windup: 900, shield: 0 } },
-  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 30000, p: { dmg: 25, gap: 650, gain: 5, sdmg: 100, cost: 50, windup: 750, shield: 0 } },
+  { name: '헬모드', info: '각오하세요', bot: 5000, bp: 12000, p: { dmg: 25, gap: 650, gain: 5, sdmg: 100, cost: 50, windup: 750, shield: 0 } },
+  // 서호모드: 민준급 2장 + 울트라 슈퍼 레어 2장 정도는 있어야 깰 수 있게 맞춤 (봇 체력 × 초당 공격이 그 덱의 체력 × 초당 데미지보다 조금 작게)
+  { name: '서호모드', info: '민준급 2장 + 울트라 2장은 있어야 깰 수 있어요', bot: 6500, bp: 25000, p: { dmg: 32, gap: 650, gain: 5, sdmg: 120, cost: 60, windup: 800, shield: 0 } },
 ];
 const AUTH_ERR = {
   'auth/email-already-in-use': '이미 사용 중인 아이디예요.',
@@ -139,7 +142,17 @@ $('item-bar').addEventListener('click', e => {
 });
 
 // ── 고유 번호: 계정마다 8자리, 서버(nos)에 한 번만 등록되고 바꿀 수 없음 ──
+let noErr = '', noBusy = false;
 async function ensureNo() {
+  if (U.admin) { // 관리자는 00000000 고정 (예전에 받은 번호가 있으면 정리)
+    if (U.no === ADMIN_NO) return false;
+    try {
+      const rdb = firebase.database(), old = U.no;
+      await rdb.ref('nos/' + ADMIN_NO).set(auth.currentUser.uid);
+      if (old) await rdb.ref('nos/' + old).remove().catch(() => {});
+      U.no = ADMIN_NO; return true;
+    } catch (e) { noErr = e.code || e.message || '오류'; return false; }
+  }
   if (U.no) return false;
   const me = auth.currentUser.uid;
   for (let i = 0; i < 6; i++) {
@@ -147,7 +160,7 @@ async function ensureNo() {
     try {
       const r = await firebase.database().ref('nos/' + no).transaction(cur => cur === null ? me : undefined);
       if (r.committed) { U.no = no; return true; }
-    } catch (e) { return false; } // 규칙이 아직 없으면 다음에 다시 시도
+    } catch (e) { noErr = e.code || e.message || '오류'; return false; } // 규칙이 아직 없으면 다음에 다시 시도
   }
   return false;
 }
@@ -169,8 +182,9 @@ function claimMail(id) { // 지우는 데 성공한 기기만 보상을 받아�
   mailRef.child(id).transaction(cur => { got = cur; return cur ? null : undefined; }, (err, ok) => {
     if (err || !ok || !got || !U) return;
     const tk = Math.max(0, Math.floor(+got.tickets || 0)), bp = Math.max(0, Math.floor(+got.bp || 0));
-    U.tickets += tk; U.bp += bp; persist();
-    toast(`🎁 보상 도착! 뽑기권 ${tk}장 · ${fmt(bp)} BP`);
+    const cs = (Array.isArray(got.cards) ? got.cards : Object.values(got.cards || {})).filter(k => CARDS[k] && !CARDS[k].tutorial && !CARDS[k].variant);
+    U.tickets += tk; U.bp += bp; cs.forEach(k => grant(k)); persist();
+    toast(`🎁 보상 도착! 뽑기권 ${tk}장 · ${fmt(bp)} BP${cs.length ? ' · 카드 ' + cs.map(k => CARDS[k].name).join(', ') : ''}`);
     if (!$('s-menu').hidden) menu();
   });
 }
@@ -185,16 +199,43 @@ $('m-gift').onclick = () => { // 관리자: 고유 번호로 보상 보내기
       if (!to) return toast('그 고유 번호의 계정이 없어요.');
       ask('보상 지급', `고유 번호 ${no}에게 줄 뽑기권 수를 입력하세요.`, '뽑기권 (0 이상)', tk => {
         ask('보상 지급', `고유 번호 ${no}에게 줄 BP를 입력하세요.`, 'BP (0 이상)', bp => {
-          tk = Math.max(0, Math.floor(+tk || 0)); bp = Math.max(0, Math.floor(+bp || 0));
-          if (!tk && !bp) return toast('보낼 보상이 없어요.');
-          firebase.database().ref('mail/' + to).push({ tickets: tk, bp, at: firebase.database.ServerValue.TIMESTAMP })
-            .then(() => toast(`${no}에게 뽑기권 ${tk}장 · ${fmt(bp)} BP를 보냈어요.`))
-            .catch(e => toast('지급 실패: ' + (e.code || e.message)));
+          const list = giftable();
+          ask('보상 지급 · 카드', `줄 카드 번호를 쉼표로 적으세요. (없으면 비워두기)\n${list.map((k, i) => `${i + 1}. ${CARDS[k].name} (${rar(k).name})`).join('\n')}`, '예: 3, 7', cs => {
+            tk = Math.max(0, Math.floor(+tk || 0)); bp = Math.max(0, Math.floor(+bp || 0));
+            const cards = cs.split(/[^0-9]+/).filter(Boolean).map(x => list[+x - 1]).filter(Boolean);
+            if (!tk && !bp && !cards.length) return toast('보낼 보상이 없어요.');
+            firebase.database().ref('mail/' + to).push({ tickets: tk, bp, cards, at: firebase.database.ServerValue.TIMESTAMP })
+              .then(() => toast(`${no}에게 보냈어요: 뽑기권 ${tk}장 · ${fmt(bp)} BP${cards.length ? ' · 카드 ' + cards.length + '장' : ''}`))
+              .catch(e => toast('지급 실패: ' + (e.code || e.message)));
+          }, 60);
         }, 9); num();
       }, 5); num();
     }).catch(e => toast('조회 실패: ' + (e.code || e.message)));
   }, 8); num();
 };
+
+const giftable = () => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant).sort((a, b) => rar(a).rank - rar(b).rank || a.localeCompare(b));
+
+// ── 카드 도감: 없는 카드도 능력치까지 볼 수 있음 ──
+function dex() {
+  const keys = Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && !CARDS[k].retired && !RARITY[CARDS[k].rarity].adminOnly)
+    .sort((a, b) => rar(b).rank - rar(a).rank || a.localeCompare(b));
+  const has = k => U.inv.some(c => c.type === k);
+  $('dex-cnt').textContent = `${keys.filter(has).length}/${keys.length}종 보유`;
+  $('dex-grid').innerHTML = keys.map(k => tileEl(k, has(k) ? `Lv.${lvOf(k)}` : '미보유', has(k) ? '' : ' unowned')).join('');
+  show('s-dex');
+}
+$('coll-dex').onclick = dex;
+$('dex-back').onclick = () => coll();
+$('dex-grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-t]'); if (!b) return;
+  const k = b.dataset.t, d = CARDS[k], top = CARDS[lvKey(k, LV_MAX)], own = U.inv.some(c => c.type === k);
+  const txt = `등급 ${rar(k).name}${own ? ` · 보유 중 (Lv.${lvOf(k)})` : ' · 미보유'}\n체력 ${d.hp}\n${d.basic.name}: ${basicDesc(d)} (스킬포인트 +${d.basic.gain})\n${d.skill.name}: ${skillDesc(d)} (스킬포인트 ${d.skill.cost} 필요)`
+    + (d.skill2 ? `\n${d.skill2.name}: 독 ${d.skill2.dmg} × ${d.skill2.poison.sec}초 (스킬포인트 ${d.skill2.cost}부터)` : '')
+    + (d.lastStand ? `\n${d.lastStand.name}: 체력 ${d.lastStand.at * 100}% 이하가 되면 자동으로 ${d.lastStand.dmg}` : '')
+    + `\n\n최대 Lv.${LV_MAX}: 체력 ${top.hp} · 평타 ${top.basic.dmg}${top.skill.dmg ? ` · 스킬 ${top.skill.dmg}` : ''}`;
+  panel(d.name, txt, '닫기', null, null, null, d.img);
+});
 
 function migrate() { // 레벨 시스템 도입 시 한 번: 중복 카드 → 레벨, 최대 레벨 초과분 → BP
   if (U.lvv) return null;
@@ -310,7 +351,11 @@ $('m-patch').onclick = patches;
 /* ── 프로필 (사진은 128px로 줄여 Firestore에 저장) ── */
 function profile() {
   $('pf-name').textContent = U.name; $('pf-av').innerHTML = avHtml(U.photo, 'xl');
-  $('pf-no').textContent = U.no ? `고유 번호 ${U.no} · 복사` : '고유 번호 발급 대기 중';
+  $('pf-no').textContent = U.no ? `고유 번호 ${U.no} · 복사` : '고유 번호 발급 중…';
+  if (!U.no && !noBusy) { // 프로필을 열 때마다 다시 시도 (규칙을 나중에 바꿔도 새로고침 없이 발급)
+    noBusy = true;
+    ensureNo().then(ok => { noBusy = false; if (ok) { persist(); profile(); } else $('pf-no').textContent = `고유 번호 발급 실패 · ${noErr || '잠시 후 다시'}`; });
+  }
   $('pf-rn').textContent = `이름 변경 (이름변경권 ${U.admin ? '∞' : (U.nt || 0)}장)`;
   show('s-prof');
 }
@@ -475,7 +520,7 @@ $('deck-grid').addEventListener('click', e => {
 
 /* ── 뽑기 ── */
 // 등급별 뽑기 확률(%) — 합계 100
-const RATES = { kimul: 58.3, rare: 25, sr: 10, usr: 6, minjun: 0.7 }; // 티원~는 관리자 전용 (뽑기 없음)
+const RATES = { kimul: 58.7, rare: 25, sr: 10, usr: 6, minjun: 0.3 }; // 티원~는 관리자 전용 (뽑기 없음)
 const poolOf = r => Object.keys(CARDS).filter(k => !CARDS[k].tutorial && !CARDS[k].variant && !CARDS[k].retired && !RARITY[CARDS[k].rarity].adminOnly && CARDS[k].rarity === r);
 // 카드가 아직 없는 등급의 확률은 바로 아래(카드가 있는) 등급으로 넘김. 등급 안 카드는 같은 확률
 function effRates() {

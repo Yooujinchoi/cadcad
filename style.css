@@ -341,3 +341,9 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .ichip.on{color:var(--gold);border-color:var(--gold)}
 .ichip.locked{opacity:.5}
 .pf-no{padding:6px 14px;font:700 14px Pretendard,sans-serif;color:var(--mute);background:rgba(0,0,0,.35);border:1px solid #3a4c4c;border-radius:16px}
+
+/* v61: 도감 · 힐 재사용 대기 · 긴 안내창 스크롤 */
+.tile.unowned .art img{filter:grayscale(1) brightness(.5)}
+.tile.unowned .cnt{color:var(--mute)}
+.shield.cool{opacity:.4}
+.panel{max-height:88vh;overflow-y:auto}
