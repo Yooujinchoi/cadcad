@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=63">
+<link rel="stylesheet" href="style.css?v=67">
 </head>
 <body>
 <main id="app">
@@ -44,6 +44,7 @@
       <button class="mbtn big" id="m-multi">멀티 게임</button>
       <button class="mbtn big" id="m-deck">출격 카드 설정</button>
       <button class="mbtn big" id="m-shop">상점</button>
+      <button class="mbtn big" id="m-story" hidden>스토리 모드 (베타)</button>
     </div>
     <div class="row"><button class="mbtn" id="m-coll">컬렉션</button><button class="mbtn" id="m-gacha">뽑기하러가기</button></div>
     <div class="foot"><button class="link" id="m-patch">패치 내역<span class="dot" id="m-dot" hidden></span></button><button class="link" id="m-notice" hidden>공지 쓰기</button><button class="link" id="m-gift" hidden>보상 지급</button><button class="link" id="m-out">로그아웃</button></div>
@@ -119,6 +120,13 @@
     <button class="btn ghost" id="r-leave" type="button">나가기</button>
   </section>
 
+  <section id="s-story" class="screen" hidden>
+    <div class="st-top"><b>스토리 모드 · 베타</b><span id="st-msg"></span><button class="quit" id="st-exit" type="button">나가기</button></div>
+    <div class="st-field"><div class="st-team" id="st-team"></div><div class="st-enemy" id="st-enemy"></div></div>
+    <div class="st-bar" id="st-bar"></div>
+    <div class="st-over" id="st-over" hidden><div><h2 id="st-over-t"></h2><p id="st-over-p"></p><button class="btn" id="st-again" type="button">다시 하기</button><button class="btn ghost" id="st-setup" type="button">배치 바꾸기</button></div></div>
+  </section>
+
   <section id="s-game" class="screen" hidden>
     <header class="top"><b id="who"></b><span id="stg"></span><button class="quit" id="quit" hidden>나가기</button></header>
     <div class="enemy" id="enemy">
@@ -163,8 +171,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="game.js?v=66"></script>
-<script src="patches.js?v=46"></script>
-<script src="app.js?v=65"></script>
+<script src="patches.js?v=47"></script>
+<script src="app.js?v=67"></script>
 <script src="multi.js?v=58"></script>
+<script src="story.js?v=1"></script>
 </body>
 </html>

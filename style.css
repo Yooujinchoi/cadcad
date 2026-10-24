@@ -354,3 +354,62 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .shield.cleanse{border-color:#fff3a6;background:rgba(255,243,166,.12)}.shield.cleanse .ico-heal{color:#fff3a6}
 .bot.cursed,.active.cursed .card{box-shadow:0 0 0 3px #9b5cff,0 0 26px #9b5cff}
 .active.gwd .hp>div:first-child{filter:saturate(.3) brightness(.8)}
+
+/* v67: 스토리 모드 (가로 화면) */
+#s-story{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;gap:6px;padding:8px max(10px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left));overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#1b2f3a,#07090c 70%)}
+.has-notice #s-story{padding-top:8px}
+@media (orientation:portrait){#s-story{inset:auto;top:0;left:0;width:100vh;height:100vw;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}}
+#app:has(#s-story:not([hidden])) .notice{display:none}
+.st-top{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mute)}
+.st-top b{color:var(--gold);font-size:13px;white-space:nowrap}
+.st-top span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--ink)}
+.st-field{flex:1;min-height:0;display:flex;gap:14px}
+.st-team{flex:0 0 42%;display:flex;gap:6px}
+.st-lane{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.st-lane em{font-style:normal;font-size:11px;text-align:center;color:var(--mute)}
+.st-slot,.st-u{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:8px}
+.st-slot{display:grid;place-items:center;font-size:20px;color:#3a4c4c;border:2px dashed #2f3f3f}
+.st-slot.on{border:2px solid var(--rc,var(--gold))}
+.st-slot.sel{border-color:var(--gold);box-shadow:0 0 12px rgba(240,179,74,.6)}
+.st-slot.vacant{border:1px dashed #1f2a2a}
+.st-slot img,.st-u img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.st-u.al{border:2px solid var(--rc,var(--gold))}
+.st-u.en{display:flex;align-items:center;justify-content:center;background:linear-gradient(#3a2226,#1c1012);border:2px solid #7a3340}
+.st-u.en b{font:400 14px "Black Han Sans",sans-serif;color:#ffb3b3}
+.st-u.boss{border-color:#ff5a4d;background:linear-gradient(#5a1d22,#20090b)}
+.st-u.boss b{font-size:22px;color:#ff8a80}
+.st-u.dead{opacity:.25;filter:grayscale(1)}
+.st-u.hit{animation:shake .2s}
+.st-hp{position:absolute;left:3px;right:3px;bottom:7px;height:6px;overflow:hidden;background:#0d1517;border-radius:3px}
+.st-hp i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2fa36b,#8be28b);transition:width .2s}
+.st-u.en .st-hp i{background:linear-gradient(90deg,#d9402f,#ff8a4d)}
+.st-hp s{position:absolute;top:0;bottom:0;background:#f2f4f5}
+.st-sp{position:absolute;left:3px;right:3px;bottom:2px;height:4px;overflow:hidden;background:#0d1517;border-radius:2px}
+.st-sp i{position:absolute;left:0;top:0;bottom:0;background:#b58bff}
+.st-enemy{flex:1;display:flex;gap:6px;min-width:0}
+.st-col{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.st-col.bosscol{flex:1.3;justify-content:center}
+.st-col.bosscol .st-u{flex:0 0 72%}
+.st-dmg{position:absolute;left:50%;top:20%;z-index:2;transform:translateX(-50%);font:400 16px "Black Han Sans",sans-serif;color:#fff;-webkit-text-stroke:1px #000;paint-order:stroke fill;pointer-events:none;animation:float .7s ease-out forwards}
+.st-dmg.big{font-size:22px;color:var(--gold)}.st-dmg.heal{color:#7cff6b}.st-dmg.sp{color:#b58bff}
+.st-pick{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;align-content:start}
+.st-card{position:relative;padding:0;aspect-ratio:3/4;overflow:hidden;background:#000;border:2px solid var(--rc,var(--gold));border-radius:8px}
+.st-card img{width:100%;height:100%;object-fit:cover}
+.st-card span{position:absolute;left:0;right:0;bottom:0;padding:1px 2px;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-card.used{opacity:.35}
+.st-bar{flex:0 0 22%;min-height:56px;display:flex;align-items:stretch;gap:6px}
+.st-count{align-self:center;margin-left:auto;font-size:13px;color:var(--mute)}
+.st-go{width:auto;align-self:center;padding:10px 22px}
+.st-sk{flex:1;min-width:0;display:flex;gap:6px;padding:4px;color:var(--ink);text-align:left;background:rgba(0,0,0,.4);border:2px solid #2f3f3f;border-radius:10px}
+.st-sk img{height:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px}
+.st-sk>span{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px;position:relative}
+.st-sk b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-sk small{font-size:10px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-sk .st-sp{position:relative;left:0;right:0;bottom:0;height:6px}
+.st-sk.ready{border-color:var(--gold);box-shadow:0 0 14px rgba(240,179,74,.6)}
+.st-sk:disabled{opacity:.3}
+.st-over{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:rgba(5,9,10,.8)}
+.st-over>div{width:min(360px,80%);display:flex;flex-direction:column;gap:10px;padding:18px;text-align:center;background:var(--teal);border:3px solid var(--gold);border-radius:14px}
+.st-over h2{margin:0;font:400 28px "Black Han Sans",sans-serif;color:var(--gold)}
+.st-over p{margin:0;line-height:1.5}
+.st-pick{grid-auto-rows:max-content}.st-card{aspect-ratio:auto;height:0;padding-top:133.33%}.st-card img{position:absolute;inset:0} /* 카드 겹침 방지 */

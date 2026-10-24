@@ -305,6 +305,7 @@ function tutorialDone() {
 function menu() {
   $('m-name').textContent = U.name; $('m-wal').textContent = wal(); $('m-av').innerHTML = avHtml(U.photo);
   $('m-dot').hidden = U.seenPatch === PATCHES[0].v;
+  $('m-story').hidden = !U.admin; // 스토리 모드 베타: 관리자만
   $('m-notice').hidden = !U.admin; $('m-gift').hidden = !U.admin;
   show('s-menu');
 }
