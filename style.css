@@ -413,3 +413,25 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .st-over h2{margin:0;font:400 28px "Black Han Sans",sans-serif;color:var(--gold)}
 .st-over p{margin:0;line-height:1.5}
 .st-pick{grid-auto-rows:max-content}.st-card{aspect-ratio:auto;height:0;padding-top:133.33%}.st-card img{position:absolute;inset:0} /* 카드 겹침 방지 */
+
+/* v68: 스토리 — 카드 작게, 쿨타임 표시, 끌어다 놓기 */
+.st-team{flex:0 0 36%}
+.st-lane{justify-content:center;align-items:center;gap:6px}
+.st-lane em{flex:none}
+.st-lane .st-slot,.st-lane .st-u{flex:0 0 auto;height:26%;width:auto;aspect-ratio:3/4;max-width:100%}
+.st-enemy{justify-content:center;gap:10px}
+.st-col{flex:0 0 auto;justify-content:center;align-items:center;gap:6px}
+.st-col .st-u.en{flex:0 0 auto;height:26%;width:auto;aspect-ratio:1/1}
+.st-col.bosscol{flex:0 0 auto}
+.st-col.bosscol .st-u{flex:0 0 auto;height:60%;width:auto;aspect-ratio:3/4}
+.st-enemy .st-pick{flex:1}
+.st-pick{grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:5px}
+.st-bar{flex-basis:18%}
+.st-card,.st-slot{touch-action:none;-webkit-user-select:none;user-select:none}
+.st-card img,.st-slot img{-webkit-user-drag:none;pointer-events:none}
+.st-slot.over{border-color:#7cff6b;box-shadow:0 0 14px #7cff6b}
+.st-ghost{position:fixed;z-index:60;width:54px;aspect-ratio:3/4;object-fit:cover;border:2px solid var(--gold);border-radius:8px;pointer-events:none;opacity:.92;transform:translate(-50%,-50%) scale(1.1);box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.st-ghost.rot{transform:translate(-50%,-50%) rotate(90deg) scale(1.1)}
+.st-sk{position:relative}
+.st-cd{position:absolute;right:6px;top:4px;font:700 11px Pretendard,sans-serif;font-style:normal;color:var(--mute)}
+.st-sk.ready .st-cd{color:var(--gold)}
