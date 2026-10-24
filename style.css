@@ -435,3 +435,41 @@ body{background:radial-gradient(120% 70% at 50% 0%,var(--teal),var(--bg) 70%)}
 .st-sk{position:relative}
 .st-cd{position:absolute;right:6px;top:4px;font:700 11px Pretendard,sans-serif;font-style:normal;color:var(--mute)}
 .st-sk.ready .st-cd{color:var(--gold)}
+
+/* v69: 프롤로그 — 올라가는 이야기 · 오두막에서 눈뜨기 */
+.st-scene{position:absolute;inset:0;z-index:8;overflow:hidden;background:#000}
+.st-x{position:absolute;right:12px;top:8px;z-index:4;padding:4px 8px;font-size:18px;color:rgba(255,255,255,.45);background:none;border:0}
+.intro{background:radial-gradient(ellipse at 50% 130%,#3a0c12,#000 70%)}
+.intro::before,.intro::after{content:"";position:absolute;left:0;right:0;z-index:2;height:24%;pointer-events:none}
+.intro::before{top:0;background:linear-gradient(#000,transparent)}
+.intro::after{bottom:0;background:linear-gradient(transparent,#000)}
+.crawl{position:absolute;left:12%;right:12%;top:100%;text-align:center;color:#f3e6c4}
+.crawl.go{animation:crawl 26s linear forwards}
+@keyframes crawl{to{top:0;transform:translateY(-100%)}}
+.crawl h3{margin:0 0 26px;font:400 26px "Black Han Sans",sans-serif;letter-spacing:.06em;color:var(--gold)}
+.crawl p{margin:0 0 18px;font:600 18px/1.95 Pretendard,sans-serif;word-break:keep-all}
+.crawl b{color:#ff5a4d}.crawl em{font-style:normal;color:var(--gold)}
+.st-skip{position:absolute;right:16px;bottom:14px;z-index:4;padding:8px 16px;font:700 13px Pretendard,sans-serif;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);border-radius:18px;animation:fadein .5s}
+@keyframes fadein{from{opacity:0}}
+.hut .room{position:absolute;inset:0;filter:blur(12px) brightness(.3);background:linear-gradient(180deg,rgba(0,0,0,.4),transparent 35%,rgba(0,0,0,.45)),repeating-linear-gradient(90deg,#6b4628 0 46px,#5a3a20 46px 48px,#734c2c 48px 94px,#4a2f19 94px 96px)}
+.hut.go .room{animation:focus 4.2s ease-out forwards}
+@keyframes focus{60%{filter:blur(4px) brightness(.75)}to{filter:blur(0) brightness(1)}}
+.hut .win{position:absolute;left:58%;top:16%;width:19%;height:34%;background:linear-gradient(160deg,#fff7dc,#ffd98a 60%,#e8a85a);border:6px solid #3b2414;box-shadow:0 0 50px rgba(255,214,140,.7)}
+.hut .win::before,.hut .win::after{content:"";position:absolute;background:#3b2414}
+.hut .win::before{left:50%;top:0;bottom:0;width:6px;margin-left:-3px}
+.hut .win::after{top:50%;left:0;right:0;height:6px;margin-top:-3px}
+.hut .beam{position:absolute;left:24%;top:22%;width:58%;height:95%;background:linear-gradient(200deg,rgba(255,226,160,.38),rgba(255,226,160,0) 70%);transform:skewX(-28deg)}
+.hut .floor{position:absolute;left:0;right:0;bottom:0;height:22%;background:linear-gradient(#3b2414,#1c1009)}
+.hut .blanket{position:absolute;left:-6%;right:-6%;bottom:-10%;height:32%;background:linear-gradient(#7a5a8a,#3e2a48);border-radius:50% 50% 0 0/45% 45% 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.5)}
+.hut .lid{position:absolute;left:-10%;right:-10%;z-index:2;height:52%;background:#000}
+.hut .lid-t{top:0;border-radius:0 0 50% 50%/0 0 35% 35%}
+.hut .lid-b{bottom:0;border-radius:50% 50% 0 0/35% 35% 0 0}
+.hut.go .lid{animation:lids 4.2s ease-in-out forwards}
+@keyframes lids{0%{height:52%}18%{height:40%}28%{height:52%}52%{height:28%}62%{height:50%}100%{height:0%}}
+.wake-line{position:absolute;left:0;right:0;bottom:15%;z-index:3;margin:0;text-align:center;font:600 20px Pretendard,sans-serif;color:#fff;text-shadow:0 2px 10px #000;opacity:0;transition:opacity 1.2s}
+.wake-line.show{opacity:1}
+.st-next{position:absolute;right:16px;bottom:14px;z-index:4;width:auto;padding:10px 22px;animation:fadein .5s}
+/* 눈뜨기: 가운데가 넓은 눈 모양 구멍이 깜빡이며 열림 */
+.hut .eye{position:absolute;left:50%;top:50%;z-index:2;width:150%;height:0;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 3000px #000,inset 0 0 50px 24px rgba(0,0,0,.92)}
+.hut.go .eye{animation:eye 4.2s ease-in-out forwards}
+@keyframes eye{0%{height:0}18%{height:24%}28%{height:2%}52%{height:52%}62%{height:10%}100%{height:340%}}

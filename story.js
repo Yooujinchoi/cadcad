@@ -29,7 +29,38 @@ function landscape(on) {
 }
 
 /* ── 배치 화면 ── */
-function storyOpen() { if (!U.admin) return; show('s-story'); landscape(true); setupView(); }
+function storyOpen() { if (!U.admin) return; show('s-story'); landscape(true); playIntro(); }
+
+/* ── 프롤로그: 아래에서 위로 올라가는 이야기 → 오두막에서 눈을 뜨는 장면 ── */
+const INTRO = [
+  '6600년 전, 평화롭던 인류 앞에 역사상 최악의 재앙 <b>"태초의 김민준"</b>이 강림한다.',
+  '어떤 무기도 통하지 않는 압도적인 힘 앞에 왕국은 초토화되고, 소년 <em>김울</em>은 눈앞에서 가족과 친구를 모두 잃는다.',
+  '인류의 유일한 희망인 용사가 나타나 목숨을 건 일격으로 태초의 김민준을 물러나게 하지만, 결국 쓰러지고 만다.',
+  '용사는 숨을 거두기 직전 자신의 힘을 김울에게 넘기고 원망과 슬픔 속에 홀로 남은 김울은 복수를 맹세한다.',
+];
+let sceneTimers = [];
+const clearScene = () => { sceneTimers.forEach(clearTimeout); sceneTimers = []; };
+function playIntro() {
+  ST.tok++; ST.run = null; clearScene();
+  $('st-over').hidden = true; $('st-wake').hidden = true; $('st-intro').hidden = false; $('st-skip').hidden = true;
+  const c = $('crawl');
+  c.innerHTML = `<h3>프롤로그 · 재앙의 날</h3>${INTRO.map(p => `<p>${p}</p>`).join('')}`;
+  c.classList.remove('go'); void c.offsetWidth; c.classList.add('go');
+  c.onanimationend = playWake;                                    // 다 올라가면 자동으로 시작
+  sceneTimers.push(setTimeout(() => { $('st-skip').hidden = false; }, 4000)); // 4초 뒤 건너뛰기
+}
+function playWake() {
+  clearScene();
+  $('st-intro').hidden = true;
+  const w = $('st-wake'), line = $('wake-line');
+  w.hidden = false; $('st-next').hidden = true; line.classList.remove('show'); line.textContent = '';
+  w.classList.remove('go'); void w.offsetWidth; w.classList.add('go'); // 눈꺼풀이 깜빡이며 열리고 흐릿한 오두막이 또렷해짐
+  sceneTimers.push(setTimeout(() => { line.textContent = '…… 여긴…… 어디지?'; line.classList.add('show'); }, 4300));
+  sceneTimers.push(setTimeout(() => { $('st-next').hidden = false; }, 5600));
+}
+$('st-skip').onclick = playWake;
+$('st-next').onclick = () => { $('st-wake').hidden = true; setupView(); }; // 다음 이야기 전까지는 전투 시험으로
+document.querySelectorAll('#s-story [data-act="exit"]').forEach(b => { b.onclick = () => $('st-exit').onclick(); });
 function setupView() {
   ST.run = null; ST.tok++;
   $('st-over').hidden = true;
@@ -184,7 +215,7 @@ function finish(win) {
 
 /* ── 버튼 ── */
 $('m-story').onclick = storyOpen;
-$('st-exit').onclick = () => { ST.tok++; ST.run = null; landscape(false); menu(); };
+$('st-exit').onclick = () => { ST.tok++; ST.run = null; clearScene(); $('st-intro').hidden = true; $('st-wake').hidden = true; landscape(false); menu(); };
 /* ── 끌어다 놓기 배치 (터치·마우스 모두) ── */
 let drag = null;
 const portrait = () => matchMedia('(orientation: portrait)').matches;
