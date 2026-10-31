@@ -71,6 +71,9 @@ const CARDS = {
   heukyeom: { name: '흑염룡 김울', img: 'heukyeom.jpg', rarity: 'usr', hp: 950,
     basic: { name: '평타', dmg: 41, cd: 750, gain: 10 },
     skill: { name: '저주', dmg: 0, cd: 800, cost: 100, hold: 450, curse: { ms: 6500, mult: 1.4 } } }, // 6.5초 동안 상대가 받는 피해 1.4배
+  fullcore: { name: '풀코어 소율', img: 'fullcore.jpg', rarity: 'usr', hp: 1200,
+    basic: { name: '평타', dmg: 17.5, cd: 500, gain: 5 },
+    skill: { name: '데마시아!', dmg: 650, cd: 800, cost: 100, hold: 450 } },
   ferrari: { name: '페라리 승현', img: 'ferrari.jpg', rarity: 'usr', hp: 1000,
     basic: { name: '평타', dmg: 22, cd: 500, gain: 7.5 },
     skill: { name: '슈우우웅!', dmg: 300, cd: 800, cost: 100, hold: 450, nextBonus: 20 } }, // 300 + 다음 평타 한 번 +20
