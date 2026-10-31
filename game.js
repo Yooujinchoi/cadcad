@@ -61,6 +61,9 @@ const CARDS = {
   lovebug: { name: '러브버그', img: 'lovebug.jpg', rarity: 'sr', hp: 1100,
     basic: { name: '평타', dmg: 15, cd: 500, gain: 8 },
     skill: { name: '커플공격', dmg: 150, cd: 800, cost: 100, hold: 450, barrier: { amt: 60, step: 5 } } }, // 보호막: 다 사라진 뒤에만 새로 생기고, 생길 때마다 5씩 줄어듦 (60 → 55 → 50 …)
+  origin: { name: '태초의 김울', img: 'origin.jpg', rarity: 't1', hp: 10000, // 관리자 전용 (뽑기에서 안 나옴)
+    basic: { name: '평타', dmg: 100, cd: 100, gain: 5 },
+    skill: { name: '몰루', dmg: 5050, range: [100, 10000], healRange: [100, 1000], cd: 800, cost: 50, hold: 450 } }, // 100~10000 무작위 데미지 + 100~1000 무작위 회복
   dark: { name: '어둠의 인도자 김민준', img: 'dark.jpg?v=2', rarity: 't1', hp: 1600, retired: true, // 회수됨: 뽑기에서 안 나옴 (관리자만 보유)
     basic: { name: '평타', dmg: 40, cd: 200, gain: 10 },
     skill: { name: '그 긴거', dmg: 450, cd: 800, cost: 100, hold: 450, barrier: { amt: 200, step: 0 } }, // 보호막 200: 다 사라진 뒤에만 다시 생김 (크기 그대로)
@@ -100,6 +103,7 @@ function ensureCard(key) { // 'yongsa@3' 같은 레벨 카드를 필요할 때 �
   if (b.skill.heal) s.heal = r(b.skill.heal);
   if (b.skill.buff) s.buff = { ...b.skill.buff, dmg: r(b.skill.buff.dmg) };
   if (b.skill.range) s.range = b.skill.range.map(r);
+  if (b.skill.healRange) s.healRange = b.skill.healRange.map(r);
   if (b.skill.nextBonus) s.nextBonus = r(b.skill.nextBonus);
   if (b.skill.requiem) s.requiem = { ...b.skill.requiem, bench: r(b.skill.requiem.bench) };
   if (b.skill.barrier) s.barrier = { ...b.skill.barrier, amt: r(b.skill.barrier.amt) };
@@ -119,7 +123,7 @@ const basicOf = c => {
   return c.noGainUntil > performance.now() ? { ...r, gain: 0 } : r; // 저주를 건 동안은 스킬포인트 안 쌓임
 };
 const basicDesc = d => `데미지 ${d.basic.dmg} · ${d.basic.cd / 1000}초마다${d.basic.lifeHit ? ` · 때릴 때마다 체력 +${d.basic.lifeHit}` : ''}${d.basic.rage ? ` · 체력 ${d.basic.rage.at * 100}% 이하면 ${d.basic.rage.cd / 1000}초마다` : ''}`;
-const skillDesc = d => d.skill.curse ? `${d.skill.curse.ms / 1000}초 동안 상대가 받는 피해 ${d.skill.curse.mult}배` : d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ` · 상대 대기 카드에는 ${d.skill.requiem.bench} (방어막으로 막으면 전부 무효)` : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.nextBonus ? ` · 다음 평타 한 번 +${d.skill.nextBonus}` : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
+const skillDesc = d => d.skill.curse ? `${d.skill.curse.ms / 1000}초 동안 상대가 받는 피해 ${d.skill.curse.mult}배` : d.skill.buff ? `${d.skill.buff.ms / 1000}초 동안 평타 ${d.skill.buff.dmg} · ${d.skill.buff.cd / 1000}초마다` : `데미지 ${d.skill.range ? d.skill.range.join('~') : d.skill.dmg}${d.skill.requiem ? ` · 상대 대기 카드에는 ${d.skill.requiem.bench} (방어막으로 막으면 전부 무효)` : ''}${d.skill.steal ? ' · 준 만큼 체력 흡수' : ''}${d.skill.healRange ? ` · 체력 ${d.skill.healRange.join('~')} 무작위 회복` : ''}${d.skill.nextBonus ? ` · 다음 평타 한 번 +${d.skill.nextBonus}` : ''}${d.skill.vamp ? ` · ${d.skill.vamp.ms / 1000}초 동안 평타 피흡 (잃은 체력이 많을수록 많이 회복)` : ''}${d.skill.heal ? ` · 체력 ${d.skill.heal} 회복` : ''}${d.skill.drain ? ` · 상대 스킬포인트 -${d.skill.drain}` : ''}${d.skill.barrier ? ` · 보호막 ${d.skill.barrier.amt} (보호막이 다 사라진 뒤에만 새로 생겨요${d.skill.barrier.step ? `, 생길 때마다 ${d.skill.barrier.step}씩 줄어요` : ''})` : ''}`;
 
 // 튜토리얼 훈련봇: 평타 1회당 스킬포인트 +5 (100 필요)
 const TUT_BOT = { dmg: 3, gap: 800, gain: 5, sdmg: 25, windup: 1000, shield: 0 };
@@ -423,6 +427,7 @@ function attack(kind) {
   if (a.range) a = { ...a, dmg: a.range[0] + Math.floor(Math.random() * (a.range[1] - a.range[0] + 1)) };
   if (big && a.buff) return startBuff(c, a);
   if (big && a.heal) heal(c, a.heal);
+  if (big && a.healRange) heal(c, a.healRange[0] + Math.floor(Math.random() * (a.healRange[1] - a.healRange[0] + 1)));
   if (big && a.barrier) grantBarrier(c, a.barrier);
   if (big && a.vamp) startVamp(c, a);
   if (big && a.nextBonus) { c.nextBonus = a.nextBonus; renderPlayer(); }
