@@ -25,8 +25,8 @@ const CARDS = {
     basic: { name: '평타', dmg: 40, cd: 900, gain: 8 }, // 묵직한 평타: 40 데미지 · 0.9초마다
     skill: { name: '울칼리버', dmg: 210, cd: 800, cost: 100, hold: 450 } },
   angry: { name: '개씹빡친김울', img: 'angry.jpg', rarity: 'minjun', hp: 1300,
-    basic: { name: '평타', dmg: 35, cd: 500, gain: 6 },
-    skill: { name: '분노광선', dmg: 300, cd: 800, cost: 100, hold: 450 },
+    basic: { name: '평타', dmg: 29, cd: 500, gain: 6 },
+    skill: { name: '분노광선', dmg: 550, cd: 800, cost: 100, hold: 450 },
     skill2: { name: '지랄하기', dmg: 5, cd: 500, cost: 50, poison: { sec: 6 } } }, // 스킬 2개: 둘 중 하나를 쓰면 스킬포인트 전부 소모. 지랄하기 = 독 5 × 6초
   nature: { name: '자연인 김승현', img: 'nature.jpg', rarity: 'rare', hp: 650, // 탱커
     basic: { name: '평타', dmg: 4, cd: 700, gain: 7 },
@@ -73,7 +73,7 @@ const CARDS = {
     skill: { name: '저주', dmg: 0, cd: 800, cost: 100, hold: 450, curse: { ms: 6500, mult: 1.4 } } }, // 6.5초 동안 상대가 받는 피해 1.4배
   fullcore: { name: '풀코어 소율', img: 'fullcore.jpg', rarity: 'usr', hp: 1200,
     basic: { name: '평타', dmg: 17.5, cd: 500, gain: 5 },
-    skill: { name: '데마시아!', dmg: 650, cd: 800, cost: 100, hold: 450 } },
+    skill: { name: '데마시아!', dmg: 500, cd: 800, cost: 100, hold: 450 } },
   ferrari: { name: '페라리 승현', img: 'ferrari.jpg', rarity: 'usr', hp: 1000,
     basic: { name: '평타', dmg: 22, cd: 500, gain: 7.5 },
     skill: { name: '슈우우웅!', dmg: 300, cd: 800, cost: 100, hold: 450, nextBonus: 20 } }, // 300 + 다음 평타 한 번 +20
